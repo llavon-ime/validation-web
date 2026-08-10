@@ -17,7 +17,7 @@
 | `padding` | 與答案逐字對齊的純注音序列 |
 | `difficulty` | 樣本本身的整體判讀難度，整數 `1`–`5`；綜合語境歧義、詞彙罕見性、專業性與所需背景知識，不參考目前模型表現 |
 
-樣本本體不包含 UUID、投稿者、建立時間或 `Co-authored-by`。UUID 僅在 Worker 到 GitHub Actions 的事件與 commit message 中作為追蹤識別；重送去重以完整 canonical 資料行判定。
+樣本本體不包含 UUID、投稿者、建立時間或 `Co-authored-by`。UUID 僅在網站後端到 GitHub Actions 的事件與 commit message 中作為追蹤識別；重送去重以完整 canonical 資料行判定。
 
 ## 聲調
 
@@ -33,8 +33,8 @@
 
 ## 傳遞與不變條件
 
-1. Worker 將欄位固定排序為 `schemaVersion`、`license`、`context`、`answer`、`padding`、`difficulty`，並以 JSON 原生 Unicode 字串傳送，不以 Base64 包裝投稿內容。
-2. Worker 在傳送前對 canonical JSON 的 UTF-8 bytes 計算 SHA-256；GitHub Action 以收到的資料重新序列化並驗證 digest，任何內容或編碼變動都會拒絕寫入。
+1. Nuxt server 將欄位固定排序為 `schemaVersion`、`license`、`context`、`answer`、`padding`、`difficulty`，並以 JSON 原生 Unicode 字串傳送，不以 Base64 包裝投稿內容。
+2. Nuxt server 在傳送前對 canonical JSON 的 UTF-8 bytes 計算 SHA-256；GitHub Action 以收到的資料重新序列化並驗證 digest，任何內容或編碼變動都會拒絕寫入。
 3. 所有文字必須是有效 Unicode scalar values；`context`、`answer` 與 `syllable` 寫入前正規化為 NFC。
 4. `Array.from(answer).length === padding.length`。
 5. 每個 `answer[i]` 必須存在於 `padding[i]` 對應注音的候選集合。

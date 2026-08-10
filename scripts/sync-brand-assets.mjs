@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const source = "https://avatars.githubusercontent.com/u/299387634?v=4&s=512";
 const expectedSha256 = "8a5c511036b8ee56f0f43803da3b0afcdcb6aadc802d909437159bd16d7fc2d7";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const destination = resolve(root, "apps/web/public/llavon-logo.png");
+const destination = resolve(root, "public/llavon-logo.png");
 
 const response = await fetch(source, {
   headers: { "User-Agent": "llavon-validation-web-brand-sync" },

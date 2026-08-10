@@ -7,7 +7,7 @@ const source =
   "https://raw.githubusercontent.com/llavon-ime/ime-windows-frontend/main/table/bopomofo_char.json";
 const expectedBlobSha = "64cb9689f26e7e2a3e19378c0f42b71dd0d67f7c";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const destination = resolve(root, "packages/zhuyin/src/bopomofo-char.json");
+const destination = resolve(root, "shared/data/bopomofo-char.json");
 
 const response = await fetch(source, {
   headers: { "User-Agent": "llavon-validation-web-data-sync" },

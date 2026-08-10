@@ -3,26 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "build": "npm run build -w @llavon/web && npm run build -w @llavon/worker",
-    "dev": "npm run build -w @llavon/web && concurrently -n web,worker -c cyan,magenta \"npm run dev -w @llavon/web\" \"npm run dev -w @llavon/worker\"",
-    "deploy": "npm run build -w @llavon/web && npm run deploy -w @llavon/worker",
+    "dev": "nuxt dev --port 5173",
+    "build": "nuxt build",
+    "preview": "node --env-file-if-exists=.env .output/server/index.mjs",
+    "postinstall": "nuxt prepare",
     "sync:brand": "node scripts/sync-brand-assets.mjs",
     "sync:bopomofo": "node scripts/sync-bopomofo.mjs",
     "test": "vitest run --pool=threads",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "nuxt": "4.5.2",
+    "nuxt-auth-utils": "0.5.30",
+    "octokit": "5.0.5",
+    "vue": "3.5.41",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
-    "concurrently": "10.0.4",
     "typescript": "5.9.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "vue-tsc": "3.3.9"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
   }
 }
