@@ -1,0 +1,21 @@
+# Copy this file to .dev.vars for local Worker development.
+ENVIRONMENT=development
+PUBLIC_ORIGIN=http://localhost:5173
+
+# Set to true only for local UI development without GitHub.
+DEV_AUTH_BYPASS=true
+
+# GitHub App user authorization
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+
+# GitHub App installation used to write the dataset repository
+GITHUB_APP_ID=
+GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+GITHUB_INSTALLATION_ID=
+GITHUB_DATASET_OWNER=llavon-ime
+GITHUB_DATASET_REPO=validation-dataset
+GITHUB_DATASET_BRANCH=main
+
+# Generate at least 32 random bytes and store them as a Wrangler secret in production.
+SESSION_SECRET=replace-with-a-long-random-secret

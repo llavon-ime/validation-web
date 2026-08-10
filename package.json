@@ -1,0 +1,28 @@
+{
+  "name": "llavon-validation-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @llavon/web && npm run build -w @llavon/worker",
+    "dev": "npm run build -w @llavon/web && concurrently -n web,worker -c cyan,magenta \"npm run dev -w @llavon/web\" \"npm run dev -w @llavon/worker\"",
+    "deploy": "npm run build -w @llavon/web && npm run deploy -w @llavon/worker",
+    "sync:brand": "node scripts/sync-brand-assets.mjs",
+    "sync:bopomofo": "node scripts/sync-bopomofo.mjs",
+    "test": "vitest run --pool=threads",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "concurrently": "10.0.4",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
