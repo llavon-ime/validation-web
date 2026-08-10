@@ -333,11 +333,10 @@ onMounted(async () => {
 
           <div v-if="result" class="message success-message" role="status">
             <div>
-              <strong>{{ result.alreadyExists ? "這筆資料已經提交過" : "貢獻已經寫入資料集" }}</strong>
-              <span v-if="result.attributed">GitHub commit 已建立，並已加入你的 Co-authored-by 紀錄。</span>
-              <span v-else>已由專案 bot 對外匿名提交，資料仍以 llavon-ime 統一標示。</span>
+              <strong>投稿已排入驗證</strong>
+              <span v-if="result.attributed">GitHub Actions 完成後，commit 會包含你的 Co-authored-by 紀錄。</span>
+              <span v-else>GitHub Actions 完成後，資料會以不含個人身分的 commit 寫入驗證集。</span>
             </div>
-            <a :href="result.commitUrl" target="_blank" rel="noreferrer">查看 commit</a>
           </div>
 
           <div v-if="!githubConfigured" class="message setup-message">

@@ -40,7 +40,7 @@
 
 二、投稿者要求分享投稿內容或其改用素材之人，以適合該媒介及情況之合理方式保留下列標示：
 
-> 拉風輸入法組織（llavon-ime），《拉風輸入法驗證集》，https://github.com/llavon-ime/validation-dataset，依 CC BY 4.0 授權。
+> 拉風輸入法組織（llavon-ime），《拉風輸入法驗證集》，https://github.com/llavon-ime/validation-set，依 CC BY 4.0 授權。
 
 分享者如曾修改素材，並應依 CC BY 4.0 表明已作修改。
 

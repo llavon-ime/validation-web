@@ -13,7 +13,6 @@
   "vars": {
     "ENVIRONMENT": "production",
     "GITHUB_DATASET_OWNER": "llavon-ime",
-    "GITHUB_DATASET_REPO": "validation-dataset",
-    "GITHUB_DATASET_BRANCH": "main"
+    "GITHUB_DATASET_REPO": "validation-set"
   }
 }

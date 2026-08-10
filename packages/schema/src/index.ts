@@ -35,11 +35,35 @@ const syllablePattern = new RegExp(
   "u",
 );
 
+export function isUnicodeScalarString(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      if (index + 1 >= value.length) return false;
+      const next = value.charCodeAt(index + 1);
+      if (next < 0xdc00 || next > 0xdfff) return false;
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function validText(maxCodePoints: number, requiredMessage: string) {
+  return z
+    .string()
+    .min(1, requiredMessage)
+    .refine(isUnicodeScalarString, "文字包含無效的 Unicode")
+    .refine((value) => Array.from(value).length <= maxCodePoints, `最多 ${maxCodePoints} 個字元`);
+}
+
 export const PaddingUnitSchema = z.object({
   syllable: z
     .string()
     .min(1, "請選擇注音")
     .max(3)
+    .refine(isUnicodeScalarString, "注音包含無效的 Unicode")
     .refine((value) => syllablePattern.test(value), "注音格式不正確"),
   tone: z.number().int().min(1).max(5),
 });
@@ -47,8 +71,8 @@ export const PaddingUnitSchema = z.object({
 export const SubmissionDraftSchema = z
   .object({
     submissionId: z.uuid(),
-    context: z.string().min(1, "請輸入前文").max(LIMITS.context),
-    answer: z.string().min(1, "請輸入正確答案").max(LIMITS.answer),
+    context: validText(LIMITS.context, "請輸入前文"),
+    answer: validText(LIMITS.answer, "請輸入正確答案"),
     padding: z.array(PaddingUnitSchema).min(1).max(LIMITS.padding),
     difficulty: z.number().int().min(1).max(5),
     publicContributionConsent: z.literal(true),
@@ -81,7 +105,6 @@ export interface AgreementAcceptance {
 export interface StoredValidationSample {
   schemaVersion: 1;
   license: typeof DATASET_LICENSE;
-  id: string;
   context: string;
   answer: string;
   padding: PaddingUnit[];
@@ -110,9 +133,27 @@ export interface AgreementResponse {
 
 export interface SubmissionResponse {
   id: string;
-  commitUrl: string;
-  alreadyExists: boolean;
+  queued: true;
   attributed: boolean;
+}
+
+export function canonicalizeValidationSample(
+  sample: StoredValidationSample,
+): StoredValidationSample {
+  return {
+    schemaVersion: sample.schemaVersion,
+    license: sample.license,
+    context: sample.context,
+    answer: sample.answer,
+    padding: sample.padding.map(({ syllable, tone }) => ({ syllable, tone })),
+    difficulty: sample.difficulty,
+  };
+}
+
+export function serializeValidationSample(sample: StoredValidationSample): string {
+  return JSON.stringify(canonicalizeValidationSample(sample))
+    .replace(/\u2028/gu, "\\u2028")
+    .replace(/\u2029/gu, "\\u2029");
 }
 
 export function normalizeDraft(draft: SubmissionDraft): SubmissionDraft {

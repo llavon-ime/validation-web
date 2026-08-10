@@ -1,6 +1,6 @@
 # 拉風輸入法驗證集共筆
 
-讓使用者透過 GitHub 登入貢獻拉風輸入法 validation set 的全端網站。使用者提供前文、唯一預期答案、逐字注音與 1–5 整體判讀難度；難度同時考量語境歧義及詞彙的罕見性、專業性與所需背景知識。後端會把每筆 CC BY 4.0 樣本寫成獨立 JSON。各投稿者保留其權利，並共同選擇「拉風輸入法組織（llavon-ime）」作為指定姓名標示名稱；另可選擇以 GitHub noreply email 加入 `Co-authored-by`。
+讓使用者透過 GitHub 登入貢獻拉風輸入法 validation set 的全端網站。使用者提供前文、唯一預期答案、逐字注音與 1–5 整體判讀難度；難度同時考量語境歧義及詞彙的罕見性、專業性與所需背景知識。後端會把每筆 CC BY 4.0 樣本送至獨立的 `validation-set` repository，由 GitHub Actions 串行追加至 `validation.jsonl`。各投稿者保留其權利，並共同選擇「拉風輸入法組織（llavon-ime）」作為指定姓名標示名稱；另可選擇以 GitHub noreply email 加入 `Co-authored-by`。
 
 ## 專案結構
 
@@ -56,8 +56,8 @@ npm run sync:bopomofo
 GitHub App 同時負責使用者登入與機器人寫入：
 
 - user access token 只用來呼叫一次 `GET /user`，取得 `id`、`login` 與 avatar，之後不保存。
-- installation token 用來建立 `samples/<UUID>.json`，有效期短且僅能存取安裝時選定的 repository。
-- commit 由 GitHub App bot 建立；使用者預設以 `Co-authored-by` trailer 署名，也可在每次提交時取消。
+- installation token 僅用來向安裝時選定的 `validation-set` repository 發送 `repository_dispatch`，有效期短且由 Worker 再限制為該單一 repository 的 `Contents: write`。
+- commit 由該 repository 的 GitHub Actions 建立；使用者預設以 `Co-authored-by` trailer 署名，也可在每次提交時取消。
 
 ### Worker 變數
 
@@ -67,8 +67,7 @@ GitHub App 同時負責使用者登入與機器人寫入：
 ENVIRONMENT=production
 PUBLIC_ORIGIN=https://你的網域
 GITHUB_DATASET_OWNER=llavon-ime
-GITHUB_DATASET_REPO=validation-dataset
-GITHUB_DATASET_BRANCH=main
+GITHUB_DATASET_REPO=validation-set
 ```
 
 敏感值使用 Wrangler secrets：
@@ -87,13 +86,13 @@ npx wrangler secret put GITHUB_INSTALLATION_ID
 
 ## 部署
 
-確認資料集 repository 已存在且 GitHub App 對目標 branch 具有寫入權限，然後執行：
+確認 GitHub App 已安裝到 `llavon-ime/validation-set`，而且該 repository 的 append workflow 已存在於 default branch，然後執行：
 
 ```powershell
 npm run deploy
 ```
 
-若目標 branch 使用 branch protection，必須允許這個 GitHub App 寫入，否則 Contents API 會拒絕提交。
+若 default branch 使用 branch protection，必須允許資料集的 GitHub Actions workflow 寫入。
 
 ## 資料與提交行為
 
@@ -101,8 +100,8 @@ npm run deploy
 - 每筆樣本只以 `license: "CC-BY-4.0"` 表明資料授權，不保存同意書版本、接受時間、建立時間或 GitHub 身分。必要姓名標示統一依資料集的 `ATTRIBUTION.md` 辦理；選擇 `Co-authored-by` 時，GitHub 身分僅出現在 commit metadata。
 - 網頁先依正確答案逐字反查合法讀音；單音字自動完成，破音字要求使用者選擇。
 - API 再次驗證答案字數、padding 數量及候選表對應，不能只信任瀏覽器。
-- 每筆提交使用瀏覽器產生的 UUID 作為 idempotency key 與 GitHub 路徑。
-- 重送相同 ID 且貢獻者相同時，API 回傳既有檔案，不建立第二筆資料。
+- 每筆提交使用瀏覽器產生的 UUID 作為事件與 commit 的追蹤識別；UUID 不寫入樣本本體。
+- Worker 回傳 HTTP `202 Accepted` 只表示 GitHub 已接受事件；Action 會驗證 canonical UTF-8 SHA-256，並以完整 canonical 資料行避免重複追加。
 - 一聲在資料內存為 `tone: 1`，只有餵給現有模型介面時才轉換成尾端空白。
 
 完整格式見 [docs/dataset-schema.md](docs/dataset-schema.md)。

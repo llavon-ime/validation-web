@@ -18,7 +18,7 @@ import {
   base64UrlEncodeBytes,
 } from "./crypto";
 import {
-  commitValidationSample,
+  dispatchValidationSample,
   exchangeOAuthCode,
   fetchGitHubUser,
   githubLoginConfigured,
@@ -339,7 +339,6 @@ async function handleSubmission(request: Request, env: Env): Promise<Response> {
   const sample: StoredValidationSample = {
     schemaVersion: 1,
     license: DATASET_LICENSE,
-    id: draft.submissionId,
     context: draft.context,
     answer: draft.answer,
     padding: draft.padding,
@@ -350,10 +349,13 @@ async function handleSubmission(request: Request, env: Env): Promise<Response> {
     : null;
 
   try {
-    return json(await commitValidationSample(env, sample, attribution), { status: 201 });
+    return json(
+      await dispatchValidationSample(env, draft.submissionId, sample, attribution),
+      { status: 202 },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "無法寫入資料集";
-    console.error("submission commit failed", { id: sample.id, message });
+    console.error("submission dispatch failed", { id: draft.submissionId, message });
     return json({ error: message }, { status: 502 });
   }
 }

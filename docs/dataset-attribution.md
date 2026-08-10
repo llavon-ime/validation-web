@@ -6,7 +6,7 @@
 
 分享本資料集之全部或一部，或分享由其產生之改用素材時，應以適合該媒介及情況之合理方式提供下列標示：
 
-> 拉風輸入法組織（llavon-ime），《拉風輸入法驗證集》，https://github.com/llavon-ime/validation-dataset，依 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 授權。
+> 拉風輸入法組織（llavon-ime），《拉風輸入法驗證集》，https://github.com/llavon-ime/validation-set，依 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 授權。
 
 如曾修改素材，應另行表明已修改並保留任何先前修改標記。提供本文件或資料集網址之連結，且可由該連結合理取得前述名稱、來源、授權及免責資訊者，得作為合理的姓名標示方式。
 

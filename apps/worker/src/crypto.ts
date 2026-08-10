@@ -81,7 +81,3 @@ export async function verifyPayload<T>(
   }
 }
 
-export function utf8ToBase64(value: string): string {
-  return btoa(bytesToBinary(encoder.encode(value)));
-}
-

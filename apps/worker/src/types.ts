@@ -10,7 +10,5 @@ export interface Env {
   GITHUB_INSTALLATION_ID?: string;
   GITHUB_DATASET_OWNER?: string;
   GITHUB_DATASET_REPO?: string;
-  GITHUB_DATASET_BRANCH?: string;
   SESSION_SECRET?: string;
 }
-

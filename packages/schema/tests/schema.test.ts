@@ -4,7 +4,9 @@ import {
   DATASET_LICENSE,
   SubmissionDraftSchema,
   displayBopomofo,
+  serializeValidationSample,
   toModelBopomofo,
+  type StoredValidationSample,
 } from "../src/index.ts";
 
 const validDraft = {
@@ -57,5 +59,31 @@ describe("validation sample schema", () => {
   it("uses an invisible trailing space only for the model's first tone", () => {
     expect(toModelBopomofo({ syllable: "ㄊㄚ", tone: 1 })).toBe("ㄊㄚ ");
     expect(displayBopomofo({ syllable: "ㄊㄚ", tone: 1 })).toBe("ㄊㄚˉ");
+  });
+
+  it("serializes the exact canonical JSONL field order without an id", () => {
+    const sample: StoredValidationSample = {
+      schemaVersion: 1,
+      license: DATASET_LICENSE,
+      context: "他說\u2028今天喝",
+      answer: "牛奶",
+      padding: [
+        { syllable: "ㄋㄧㄡ", tone: 2 },
+        { syllable: "ㄋㄞ", tone: 3 },
+      ],
+      difficulty: 2,
+    };
+    expect(serializeValidationSample(sample)).toBe(
+      '{"schemaVersion":1,"license":"CC-BY-4.0","context":"他說\\u2028今天喝","answer":"牛奶","padding":[{"syllable":"ㄋㄧㄡ","tone":2},{"syllable":"ㄋㄞ","tone":3}],"difficulty":2}',
+    );
+  });
+
+  it("rejects lone UTF-16 surrogates before UTF-8 transport", () => {
+    expect(
+      SubmissionDraftSchema.safeParse({
+        ...validDraft,
+        context: `前文${String.fromCharCode(0xd800)}`,
+      }).success,
+    ).toBe(false);
   });
 });

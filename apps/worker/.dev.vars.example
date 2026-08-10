@@ -14,8 +14,7 @@ GITHUB_APP_ID=
 GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
 GITHUB_INSTALLATION_ID=
 GITHUB_DATASET_OWNER=llavon-ime
-GITHUB_DATASET_REPO=validation-dataset
-GITHUB_DATASET_BRANCH=main
+GITHUB_DATASET_REPO=validation-set
 
 # Generate at least 32 random bytes and store them as a Wrangler secret in production.
 SESSION_SECRET=replace-with-a-long-random-secret

@@ -5,10 +5,10 @@ import type {
   SubmissionResponse,
 } from "@llavon/schema";
 import {
-  base64UrlEncodeBytes,
-  base64UrlEncodeText,
-  utf8ToBase64,
-} from "./crypto";
+  canonicalizeValidationSample,
+  serializeValidationSample,
+} from "@llavon/schema";
+import { base64UrlEncodeBytes, base64UrlEncodeText } from "./crypto";
 import type { Env } from "./types";
 
 const GITHUB_API = "https://api.github.com";
@@ -26,14 +26,8 @@ interface InstallationTokenResponse {
   expires_at: string;
 }
 
-interface ContentsResponse {
-  html_url?: string;
-  content?: string;
-  commit?: { html_url?: string };
-}
-
 let cachedInstallationToken:
-  | { token: string; expiresAt: number; installationId: string }
+  | { token: string; expiresAt: number; installationId: string; repository: string }
   | undefined;
 
 function githubHeaders(token?: string): HeadersInit {
@@ -48,10 +42,6 @@ function githubHeaders(token?: string): HeadersInit {
 function required(value: string | undefined, name: string): string {
   if (!value) throw new Error(`Missing Worker environment variable: ${name}`);
   return value;
-}
-
-function pathEncode(path: string): string {
-  return path.split("/").map(encodeURIComponent).join("/");
 }
 
 function decodeBase64(value: string): Uint8Array {
@@ -151,8 +141,10 @@ async function createAppJwt(env: Env): Promise<string> {
 
 async function getInstallationToken(env: Env): Promise<string> {
   const installationId = required(env.GITHUB_INSTALLATION_ID, "GITHUB_INSTALLATION_ID");
+  const repository = required(env.GITHUB_DATASET_REPO, "GITHUB_DATASET_REPO");
   if (
     cachedInstallationToken?.installationId === installationId &&
+    cachedInstallationToken.repository === repository &&
     cachedInstallationToken.expiresAt > Date.now() + 60_000
   ) {
     return cachedInstallationToken.token;
@@ -162,7 +154,14 @@ async function getInstallationToken(env: Env): Promise<string> {
     `${GITHUB_API}/app/installations/${encodeURIComponent(installationId)}/access_tokens`,
     {
       method: "POST",
-      headers: githubHeaders(await createAppJwt(env)),
+      headers: {
+        ...githubHeaders(await createAppJwt(env)),
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({
+        repositories: [repository],
+        permissions: { contents: "write" },
+      }),
     },
   );
   if (!response.ok) {
@@ -173,6 +172,7 @@ async function getInstallationToken(env: Env): Promise<string> {
     token: body.token,
     expiresAt: Date.parse(body.expires_at),
     installationId,
+    repository,
   };
   return body.token;
 }
@@ -226,92 +226,71 @@ export async function fetchGitHubUser(token: string): Promise<SessionUser> {
   };
 }
 
-async function findExisting(
-  env: Env,
-  token: string,
-  path: string,
-  sample: StoredValidationSample,
-  attributed: boolean,
-): Promise<SubmissionResponse | null> {
-  const owner = required(env.GITHUB_DATASET_OWNER, "GITHUB_DATASET_OWNER");
-  const repo = required(env.GITHUB_DATASET_REPO, "GITHUB_DATASET_REPO");
-  const branch = env.GITHUB_DATASET_BRANCH ?? "main";
-  const response = await fetch(
-    `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${pathEncode(path)}?ref=${encodeURIComponent(branch)}`,
-    { headers: githubHeaders(token) },
-  );
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Unable to check an existing dataset entry (${response.status})`);
-  const body = (await response.json()) as ContentsResponse;
-  if (!body.content) return null;
-  try {
-    const decoded = new TextDecoder().decode(
-      Uint8Array.from(atob(body.content.replace(/\s+/gu, "")), (character) =>
-        character.charCodeAt(0),
-      ),
-    );
-    const existing = JSON.parse(decoded) as StoredValidationSample;
-    if (JSON.stringify(existing) === JSON.stringify(sample)) {
-      return {
-        id: sample.id,
-        commitUrl: body.html_url ?? `https://github.com/${owner}/${repo}`,
-        alreadyExists: true,
-        attributed,
-      };
-    }
-  } catch {
-    // An occupied path with unrelated or malformed content is a conflict.
-  }
-  throw new Error("The submission ID is already used by a different dataset entry");
+export interface ValidationDispatch {
+  event_type: "append-validation-sample";
+  client_payload: {
+    submissionId: string;
+    sample: StoredValidationSample;
+    payloadSha256: string;
+    attribution: GitHubIdentity | null;
+  };
 }
 
-export async function commitValidationSample(
+async function sha256HexUtf8(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const decoded = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+  if (decoded !== value) throw new Error("UTF-8 round-trip validation failed");
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function createValidationDispatch(
+  submissionId: string,
+  sample: StoredValidationSample,
+  attribution: GitHubIdentity | null,
+): Promise<ValidationDispatch> {
+  const canonicalSample = canonicalizeValidationSample(sample);
+  const serialized = serializeValidationSample(canonicalSample);
+  return {
+    event_type: "append-validation-sample",
+    client_payload: {
+      submissionId,
+      sample: canonicalSample,
+      payloadSha256: await sha256HexUtf8(serialized),
+      attribution,
+    },
+  };
+}
+
+export async function dispatchValidationSample(
   env: Env,
+  submissionId: string,
   sample: StoredValidationSample,
   attribution: GitHubIdentity | null,
 ): Promise<SubmissionResponse> {
   const owner = required(env.GITHUB_DATASET_OWNER, "GITHUB_DATASET_OWNER");
   const repo = required(env.GITHUB_DATASET_REPO, "GITHUB_DATASET_REPO");
-  const branch = env.GITHUB_DATASET_BRANCH ?? "main";
   const token = await getInstallationToken(env);
-  const path = `samples/${sample.id}.json`;
-  const message =
-    attribution
-      ? `dataset: add validation sample ${sample.id}\n\n` +
-        `Co-authored-by: ${attribution.githubLogin} ` +
-        `<${attribution.githubId}+${attribution.githubLogin}@users.noreply.github.com>`
-      : `dataset: add anonymous validation sample ${sample.id}`;
-
-  const existing = await findExisting(env, token, path, sample, attribution !== null);
-  if (existing) return existing;
+  const dispatch = await createValidationDispatch(submissionId, sample, attribution);
 
   const response = await fetch(
-    `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${pathEncode(path)}`,
+    `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/dispatches`,
     {
-      method: "PUT",
-      headers: { ...githubHeaders(token), "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        content: utf8ToBase64(`${JSON.stringify(sample, null, 2)}\n`),
-        branch,
-      }),
+      method: "POST",
+      headers: {
+        ...githubHeaders(token),
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify(dispatch),
     },
   );
-
-  if (response.status === 409 || response.status === 422) {
-    const raceWinner = await findExisting(env, token, path, sample, attribution !== null);
-    if (raceWinner) return raceWinner;
-  }
-  if (!response.ok) {
+  if (response.status !== 204) {
     const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(body?.message ?? `GitHub dataset commit failed (${response.status})`);
+    throw new Error(body?.message ?? `GitHub repository dispatch failed (${response.status})`);
   }
-
-  const body = (await response.json()) as ContentsResponse;
   return {
-    id: sample.id,
-    commitUrl: body.commit?.html_url ?? `https://github.com/${owner}/${repo}`,
-    alreadyExists: false,
+    id: submissionId,
+    queued: true,
     attributed: attribution !== null,
   };
 }
