@@ -73,11 +73,8 @@ export default defineEventHandler(async (event) => {
   const attribution = draft.creditAsCoauthor
     ? { githubId: user.githubId, githubLogin: user.githubLogin }
     : null;
-  const runtimeConfig = useRuntimeConfig(event);
-
   try {
     const result = await dispatchValidationSample(
-      runtimeConfig.github,
       draft.submissionId,
       sample,
       attribution,

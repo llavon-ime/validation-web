@@ -1,4 +1,5 @@
 import { App } from "octokit";
+import { z } from "zod";
 import type {
   GitHubIdentity,
   StoredValidationSample,
@@ -9,13 +10,14 @@ import {
   serializeValidationSample,
 } from "../../shared/utils/schema";
 
-export interface GitHubAppConfig {
-  appId: string;
-  appPrivateKey: string;
-  installationId: string;
-  datasetOwner: string;
-  datasetRepo: string;
-}
+const DATASET_OWNER = "llavon-ime";
+const DATASET_REPO = "validation-set";
+
+const GitHubAppEnvSchema = z.object({
+  GITHUB_APP_ID: z.string().trim().min(1),
+  GITHUB_APP_PRIVATE_KEY: z.string().trim().min(1),
+  GITHUB_INSTALLATION_ID: z.coerce.number().int().positive(),
+});
 
 export interface ValidationDispatch {
   event_type: "append-validation-sample";
@@ -27,11 +29,16 @@ export interface ValidationDispatch {
   };
 }
 
-function requireConfig(value: string, name: string): string {
-  if (!value) {
-    throw new Error(`缺少伺服器環境變數：${name}`);
+function readGitHubAppEnv() {
+  const parsed = GitHubAppEnvSchema.safeParse(process.env);
+  if (!parsed.success) {
+    const names = parsed.error.issues
+      .map((issue) => issue.path.join("."))
+      .filter(Boolean)
+      .join("、");
+    throw new Error(`GitHub App 環境變數缺漏或格式錯誤：${names}`);
   }
-  return value;
+  return parsed.data;
 }
 
 function normalizePrivateKey(value: string): string {
@@ -70,28 +77,19 @@ export async function createValidationDispatch(
 }
 
 export async function dispatchValidationSample(
-  config: GitHubAppConfig,
   submissionId: string,
   sample: StoredValidationSample,
   attribution: GitHubIdentity | null,
 ): Promise<SubmissionResponse> {
-  const appId = requireConfig(config.appId, "NUXT_GITHUB_APP_ID");
-  const privateKey = normalizePrivateKey(
-    requireConfig(config.appPrivateKey, "NUXT_GITHUB_APP_PRIVATE_KEY"),
-  );
-  const installationId = Number(
-    requireConfig(config.installationId, "NUXT_GITHUB_INSTALLATION_ID"),
-  );
-  if (!Number.isSafeInteger(installationId) || installationId <= 0) {
-    throw new Error("NUXT_GITHUB_INSTALLATION_ID 必須是正整數");
-  }
+  const env = readGitHubAppEnv();
+  const privateKey = normalizePrivateKey(env.GITHUB_APP_PRIVATE_KEY);
 
-  const app = new App({ appId, privateKey });
-  const octokit = await app.getInstallationOctokit(installationId);
+  const app = new App({ appId: env.GITHUB_APP_ID, privateKey });
+  const octokit = await app.getInstallationOctokit(env.GITHUB_INSTALLATION_ID);
   const dispatch = await createValidationDispatch(submissionId, sample, attribution);
   await octokit.rest.repos.createDispatchEvent({
-    owner: requireConfig(config.datasetOwner, "NUXT_GITHUB_DATASET_OWNER"),
-    repo: requireConfig(config.datasetRepo, "NUXT_GITHUB_DATASET_REPO"),
+    owner: DATASET_OWNER,
+    repo: DATASET_REPO,
     ...dispatch,
   });
 

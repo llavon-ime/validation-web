@@ -1,6 +1,10 @@
 import type { SessionUser } from "../../../shared/utils/schema";
 
 export default defineOAuthGitHubEventHandler({
+  config: {
+    clientId: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  },
   async onSuccess(event, { user }) {
     const sessionUser: SessionUser = {
       githubId: user.id,

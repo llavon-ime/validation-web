@@ -61,20 +61,18 @@ npm run sync:bopomofo
 
 ## 環境變數
 
-本機變數使用 Nuxt 預設的 `.env`，正式環境則設定在部署平台。完整範本見 [.env.example](.env.example)。所有自訂伺服器設定由 Nuxt `runtimeConfig` 讀取，不直接散落讀取 `process.env`。
+本機變數使用 Nuxt 預設的 `.env`，正式環境則設定在部署平台。完整範本見 [.env.example](.env.example)。OAuth 與 GitHub App credentials 只由 `server/` 程式透過 `process.env` 讀取，不放入 Nuxt `runtimeConfig`；session 密碼則依 `nuxt-auth-utils` 的介面使用 `NUXT_SESSION_PASSWORD`。
 
 | 名稱 | 用途 |
 | --- | --- |
 | `NUXT_SESSION_PASSWORD` | 至少 32 字元，用於 Nuxt 加密 session 與同意書 cookie |
-| `NUXT_OAUTH_GITHUB_CLIENT_ID` | GitHub App Client ID，供 `nuxt-auth-utils` 使用 |
-| `NUXT_OAUTH_GITHUB_CLIENT_SECRET` | GitHub App Client secret，供 `nuxt-auth-utils` 使用 |
-| `NUXT_GITHUB_APP_ID` | GitHub App ID |
-| `NUXT_GITHUB_APP_PRIVATE_KEY` | GitHub App private key PEM，可使用真正換行或 `\n` |
-| `NUXT_GITHUB_INSTALLATION_ID` | App 安裝至 `llavon-ime` 後的 installation ID |
-| `NUXT_GITHUB_DATASET_OWNER` | `llavon-ime` |
-| `NUXT_GITHUB_DATASET_REPO` | `validation-set` |
+| `GITHUB_CLIENT_ID` | GitHub App Client ID，傳給 `nuxt-auth-utils` 的 OAuth handler |
+| `GITHUB_CLIENT_SECRET` | GitHub App Client secret，傳給 `nuxt-auth-utils` 的 OAuth handler |
+| `GITHUB_APP_ID` | GitHub App ID |
+| `GITHUB_APP_PRIVATE_KEY` | GitHub App private key PEM，可使用真正換行或 `\n` |
+| `GITHUB_INSTALLATION_ID` | App 安裝至 `llavon-ime` 後的 installation ID |
 
-`NUXT_GITHUB_APP_PRIVATE_KEY` 接受 GitHub 下載的 private key PEM，以及多行 PEM 或以 `\n` 表示換行的單行字串。PEM 解析與 GitHub App JWT／installation token 交換由 Octokit 處理。
+`GITHUB_APP_PRIVATE_KEY` 接受 GitHub 下載的 private key PEM，以及多行 PEM 或以 `\n` 表示換行的單行字串。GitHub App 三項環境變數由 Zod 在 server-only service 集中驗證；PEM 解析與 GitHub App JWT／installation token 交換由 Octokit 處理。資料庫目標固定為 `llavon-ime/validation-set`，不另外使用環境變數。
 
 ## 部署至 Vercel
 

@@ -3,13 +3,6 @@ export default defineNuxtConfig({
   css: ["~/assets/styles.css"],
   devtools: { enabled: false },
   runtimeConfig: {
-    github: {
-      appId: "",
-      appPrivateKey: "",
-      installationId: "",
-      datasetOwner: "llavon-ime",
-      datasetRepo: "validation-set",
-    },
     session: {
       maxAge: 60 * 60 * 24 * 30,
     },
