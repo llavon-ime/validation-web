@@ -17,7 +17,6 @@ const hasContent = computed(
 );
 const isComplete = computed(
   () =>
-    props.context.length > 0 &&
     props.cells.length > 0 &&
     props.cells.every((cell) => cell.selected !== null),
 );
@@ -49,7 +48,6 @@ const readingSequence = computed(() =>
     <div v-if="hasContent" class="preview-surface">
       <p class="composed-sentence">
         <span v-if="context" class="preview-context">{{ context }}</span>
-        <span v-else class="preview-placeholder">前文</span>
         <span v-if="cells.length" class="preview-answer">
           <ruby v-for="(cell, index) in cells" :key="`${index}-${cell.character}`">
             <span>{{ cell.character }}</span>
@@ -71,7 +69,7 @@ const readingSequence = computed(() =>
       <span aria-hidden="true">字</span>
       <p>
         <strong>完整句子會顯示在這裡</strong>
-        填入前文與正確答案後，可在送出前確認組字與逐字注音。
+        填入正確答案後，可在送出前確認組字與逐字注音。
       </p>
     </div>
   </section>

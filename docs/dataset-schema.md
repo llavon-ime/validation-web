@@ -12,7 +12,7 @@
 | --- | --- |
 | `schemaVersion` | 格式版本，目前固定為 `1` |
 | `license` | 單筆資料的授權識別，固定為 `CC-BY-4.0` |
-| `context` | 正確答案之前的文字，1–500 個 Unicode code points |
+| `context` | 正確答案之前的文字，可為空字串，最多 500 個 Unicode code points |
 | `answer` | 貢獻者唯一預期的輸出，最多 32 個 Unicode code points |
 | `padding` | 與答案逐字對齊的純注音序列 |
 | `difficulty` | 樣本本身的整體判讀難度，整數 `1`–`5`；綜合語境歧義、詞彙罕見性、專業性與所需背景知識，不參考目前模型表現 |

@@ -31,6 +31,26 @@ describe("validation sample schema", () => {
     expect(SubmissionDraftSchema.safeParse(validDraft).success).toBe(true);
   });
 
+  it("accepts an empty context", () => {
+    expect(
+      SubmissionDraftSchema.safeParse({
+        ...validDraft,
+        context: "",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      StoredValidationSampleSchema.safeParse({
+        schemaVersion: 1,
+        license: DATASET_LICENSE,
+        context: "",
+        answer: "水",
+        padding: [{ syllable: "ㄕㄨㄟ", tone: 3 }],
+        difficulty: 2,
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects an answer and padding length mismatch", () => {
     const result = SubmissionDraftSchema.safeParse({
       ...validDraft,

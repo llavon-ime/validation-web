@@ -55,7 +55,6 @@ const showAgreement = computed(
 );
 const formComplete = computed(
   () =>
-    context.value.length > 0 &&
     answerCharacters.value.length > 0 &&
     answerCharacters.value.length <= LIMITS.answer &&
     !unresolved.value &&
@@ -269,7 +268,7 @@ onMounted(async () => {
       <section class="page-heading">
         <div>
           <h1>建立驗證集樣本</h1>
-          <p>提交前文、正確答案、逐字注音與整體判讀難度。</p>
+          <p>提交正確答案、逐字注音、整體判讀難度，以及可選的前文。</p>
         </div>
         <span class="draft-state">草稿會自動保存</span>
       </section>
@@ -279,7 +278,7 @@ onMounted(async () => {
         <form @submit.prevent="previewSubmission">
           <div class="field-group">
             <div class="field-label-row">
-              <label for="context"><span class="field-index">1</span>前文</label>
+              <label for="context"><span class="field-index">1</span>前文（可選）</label>
               <span>{{ context.length }} / {{ LIMITS.context }}</span>
             </div>
             <textarea
@@ -288,9 +287,8 @@ onMounted(async () => {
               :maxlength="LIMITS.context"
               rows="4"
               placeholder="例如：下班後我想去超市買"
-              required
             />
-            <p class="field-hint">只填答案出現之前的內容，不要在這裡放入正確答案。</p>
+            <p class="field-hint">可以留空；若有填寫，只放答案出現之前的內容。</p>
           </div>
 
           <div class="field-group">

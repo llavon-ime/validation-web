@@ -65,6 +65,13 @@ function validText(maxCodePoints: number, requiredMessage: string) {
     .refine((value) => Array.from(value).length <= maxCodePoints, `最多 ${maxCodePoints} 個字元`);
 }
 
+function optionalText(maxCodePoints: number) {
+  return z
+    .string()
+    .refine(isUnicodeScalarString, "文字包含無效的 Unicode")
+    .refine((value) => Array.from(value).length <= maxCodePoints, `最多 ${maxCodePoints} 個字元`);
+}
+
 export const PaddingUnitSchema = z.object({
   syllable: z
     .string()
@@ -78,7 +85,7 @@ export const PaddingUnitSchema = z.object({
 export const SubmissionDraftSchema = z
   .object({
     submissionId: z.uuid(),
-    context: validText(LIMITS.context, "請輸入前文"),
+    context: optionalText(LIMITS.context),
     answer: validText(LIMITS.answer, "請輸入正確答案"),
     padding: z.array(PaddingUnitSchema).min(1).max(LIMITS.padding),
     difficulty: DifficultySchema,
@@ -113,7 +120,7 @@ export const StoredValidationSampleSchema = z
   .object({
     schemaVersion: z.literal(1),
     license: z.literal(DATASET_LICENSE),
-    context: validText(LIMITS.context, "缺少前文"),
+    context: optionalText(LIMITS.context),
     answer: validText(LIMITS.answer, "缺少正確答案"),
     padding: z.array(PaddingUnitSchema).min(1).max(LIMITS.padding),
     difficulty: DifficultySchema,

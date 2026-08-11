@@ -42,6 +42,24 @@ describe("Nuxt server API", () => {
     });
   });
 
+  it("serializes an empty context as an empty JSON string", async () => {
+    const dispatch = await createValidationDispatch(
+      "0262684d-61eb-4c2b-906f-62d168bcd021",
+      {
+        schemaVersion: 1,
+        license: DATASET_LICENSE,
+        context: "",
+        answer: "水",
+        padding: [{ syllable: "ㄕㄨㄟ", tone: 3 }],
+        difficulty: 2,
+      },
+      null,
+    );
+
+    expect(dispatch.client_payload.sample.context).toBe("");
+    expect(JSON.stringify(dispatch.client_payload)).toContain('"context":""');
+  });
+
   it("compares mutation origins against the actual request origin", () => {
     expect(
       isSameOrigin("http://127.0.0.1:3000/api/submissions", "http://127.0.0.1:3000"),
