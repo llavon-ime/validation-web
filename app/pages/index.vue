@@ -364,6 +364,13 @@ onMounted(async () => {
               <span v-if="result.attributed">GitHub Actions 完成後，commit 會包含你的 Co-authored-by 紀錄。</span>
               <span v-else>GitHub Actions 完成後，資料會以不含個人身分的 commit 寫入驗證集。</span>
             </div>
+            <a
+              href="https://github.com/llavon-ime/validation-set/actions"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              查看執行進度 ↗
+            </a>
           </div>
 
           <button
