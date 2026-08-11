@@ -20,11 +20,13 @@ import {
 } from "./utils/api";
 import ContributionAgreement from "./components/ContributionAgreement.vue";
 import DifficultyPicker from "./components/DifficultyPicker.vue";
+import SubmissionReviewDialog from "./components/SubmissionReviewDialog.vue";
 import ZhuyinAligner, {
   type AlignmentCell,
 } from "./components/ZhuyinAligner.vue";
 
 const DRAFT_KEY = "llavon-validation-draft-v1";
+const REVIEW_AFTER_LOGIN_KEY = "llavon-validation-review-after-login";
 
 const context = ref("");
 const answer = ref("");
@@ -37,6 +39,7 @@ const submissionId = ref("");
 
 const { user, ready: sessionReady, clear: clearUserSession } = useUserSession();
 const submitting = ref(false);
+const previewing = ref(false);
 const errorMessage = ref("");
 const result = ref<SubmissionResponse | null>(null);
 const agreementAcceptedAt = ref<string | null>(null);
@@ -144,14 +147,27 @@ function buildDraft(): SubmissionDraft | null {
   return parsed.data;
 }
 
-async function submit() {
+function previewSubmission() {
   errorMessage.value = "";
   result.value = null;
   const draft = buildDraft();
   if (!draft) return;
 
+  saveDraft();
+  previewing.value = true;
+}
+
+async function confirmSubmission() {
+  errorMessage.value = "";
+  const draft = buildDraft();
+  if (!draft) {
+    previewing.value = false;
+    return;
+  }
+
   if (!user.value) {
     saveDraft();
+    localStorage.setItem(REVIEW_AFTER_LOGIN_KEY, "1");
     window.location.assign("/auth/github");
     return;
   }
@@ -161,8 +177,10 @@ async function submit() {
     result.value = await submitValidationSample(draft);
     localStorage.removeItem(DRAFT_KEY);
     submissionId.value = crypto.randomUUID();
+    previewing.value = false;
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "提交失敗，請稍後再試";
+    previewing.value = false;
   } finally {
     submitting.value = false;
   }
@@ -190,6 +208,18 @@ async function acceptAgreement() {
 watch(answer, () => rebuildCells());
 watch([context, answer, difficulty, consent, validationUseConsent, creditAsCoauthor, cells], saveDraft, {
   deep: true,
+});
+watch([sessionReady, user, formComplete], () => {
+  if (!import.meta.client) return;
+  if (
+    sessionReady.value &&
+    user.value &&
+    formComplete.value &&
+    localStorage.getItem(REVIEW_AFTER_LOGIN_KEY) === "1"
+  ) {
+    localStorage.removeItem(REVIEW_AFTER_LOGIN_KEY);
+    previewing.value = true;
+  }
 });
 
 onMounted(async () => {
@@ -245,7 +275,7 @@ onMounted(async () => {
 
       <section class="form-card" aria-labelledby="form-title">
         <h2 id="form-title" class="sr-only">驗證樣本內容</h2>
-        <form @submit.prevent="submit">
+        <form @submit.prevent="previewSubmission">
           <div class="field-group">
             <div class="field-label-row">
               <label for="context"><span class="field-index">1</span>前文</label>
@@ -340,11 +370,11 @@ onMounted(async () => {
             class="submit-button"
             :disabled="!formComplete || submitting"
           >
-            <span>{{ submitting ? "正在寫入 GitHub…" : user ? "提交這筆驗證資料" : "使用 GitHub 登入並繼續" }}</span>
+            <span>預覽提交內容</span>
             <span aria-hidden="true">→</span>
           </button>
           <p class="submit-note">
-            提交後會建立公開 GitHub commit；是否公開署名依上方選項決定。
+            預覽不需要登入；確認內容後才會要求 GitHub 登入或正式提交。
           </p>
         </form>
       </section>
@@ -361,6 +391,17 @@ onMounted(async () => {
       :loading="agreementLoading"
       :error="agreementError"
       @accept="acceptAgreement"
+    />
+
+    <SubmissionReviewDialog
+      :open="previewing"
+      :context="context"
+      :cells="cells"
+      :difficulty="difficulty"
+      :authenticated="Boolean(user)"
+      :loading="submitting"
+      @close="previewing = false"
+      @confirm="confirmSubmission"
     />
   </div>
 </template>
