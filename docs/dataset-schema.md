@@ -1,6 +1,6 @@
 # Validation sample schema
 
-資料集保存在 `llavon-ime/validation-set` repository 根目錄的 `validation.jsonl`。每一行是一筆獨立的 canonical JSON；檔案使用 UTF-8（無 BOM）與 LF 換行。
+資料集保存在 `llavon-ime/validation-set` repository 的 `dataset/validation.jsonl`。每一行是一筆獨立的 canonical JSON；檔案使用 UTF-8（無 BOM）與 LF 換行。
 
 ```jsonl
 {"schemaVersion":1,"license":"CC-BY-4.0","context":"下班後我想去超市買","answer":"牛奶","padding":[{"syllable":"ㄋㄧㄡ","tone":2},{"syllable":"ㄋㄞ","tone":3}],"difficulty":2}

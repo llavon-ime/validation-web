@@ -8,6 +8,13 @@ export const LIMITS = {
 
 export const DIFFICULTY_LEVELS = [1, 2, 3, 4, 5] as const;
 export type Difficulty = (typeof DIFFICULTY_LEVELS)[number];
+export const DifficultySchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+]);
 export const CONTRIBUTION_AGREEMENT_VERSION = "2.0";
 export const DATASET_LICENSE = "CC-BY-4.0" as const;
 
@@ -74,7 +81,7 @@ export const SubmissionDraftSchema = z
     context: validText(LIMITS.context, "請輸入前文"),
     answer: validText(LIMITS.answer, "請輸入正確答案"),
     padding: z.array(PaddingUnitSchema).min(1).max(LIMITS.padding),
-    difficulty: z.number().int().min(1).max(5),
+    difficulty: DifficultySchema,
     publicContributionConsent: z.literal(true),
     validationUseConsent: z.literal(true),
     creditAsCoauthor: z.boolean(),
@@ -102,14 +109,27 @@ export interface AgreementAcceptance {
   acceptedAt: string;
 }
 
-export interface StoredValidationSample {
-  schemaVersion: 1;
-  license: typeof DATASET_LICENSE;
-  context: string;
-  answer: string;
-  padding: PaddingUnit[];
-  difficulty: Difficulty;
-}
+export const StoredValidationSampleSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    license: z.literal(DATASET_LICENSE),
+    context: validText(LIMITS.context, "缺少前文"),
+    answer: validText(LIMITS.answer, "缺少正確答案"),
+    padding: z.array(PaddingUnitSchema).min(1).max(LIMITS.padding),
+    difficulty: DifficultySchema,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (Array.from(value.answer.normalize("NFC")).length !== value.padding.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["padding"],
+        message: "每個答案字都必須對應一個注音",
+      });
+    }
+  });
+
+export type StoredValidationSample = z.infer<typeof StoredValidationSampleSchema>;
 
 export interface SessionUser extends GitHubIdentity {
   avatarUrl: string;

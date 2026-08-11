@@ -3,6 +3,7 @@ import {
   CONTRIBUTION_AGREEMENT_VERSION,
   DATASET_LICENSE,
   SubmissionDraftSchema,
+  StoredValidationSampleSchema,
   displayBopomofo,
   serializeValidationSample,
   toModelBopomofo,
@@ -76,6 +77,36 @@ describe("validation sample schema", () => {
     expect(serializeValidationSample(sample)).toBe(
       '{"schemaVersion":1,"license":"CC-BY-4.0","context":"他說\\u2028今天喝","answer":"牛奶","padding":[{"syllable":"ㄋㄧㄡ","tone":2},{"syllable":"ㄋㄞ","tone":3}],"difficulty":2}',
     );
+  });
+
+  it("validates public dataset rows before rendering them", () => {
+    expect(
+      StoredValidationSampleSchema.safeParse({
+        schemaVersion: 1,
+        license: DATASET_LICENSE,
+        context: "下班後我想去超市買",
+        answer: "牛奶",
+        padding: [
+          { syllable: "ㄋㄧㄡ", tone: 2 },
+          { syllable: "ㄋㄞ", tone: 3 },
+        ],
+        difficulty: 2,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects malformed or extended public dataset rows", () => {
+    expect(
+      StoredValidationSampleSchema.safeParse({
+        schemaVersion: 1,
+        license: DATASET_LICENSE,
+        context: "我想喝",
+        answer: "水",
+        padding: [{ syllable: "ㄕㄨㄟ", tone: 3 }],
+        difficulty: 2,
+        unexpected: "field",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects lone UTF-16 surrogates before UTF-8 transport", () => {
