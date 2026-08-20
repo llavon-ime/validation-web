@@ -11,4 +11,11 @@ describe("bopomofo candidate map", () => {
     first.length = 0;
     expect(getReadingsForCharacter("你").length).toBeGreaterThan(0);
   });
+
+  it("uses each English letter as its own annotation", () => {
+    expect(getReadingsForCharacter("A")).toEqual([{ syllable: "A", tone: 1 }]);
+    expect(isReadingForCharacter("A", { syllable: "A", tone: 1 })).toBe(true);
+    expect(isReadingForCharacter("A", { syllable: "a", tone: 1 })).toBe(false);
+    expect(isReadingForCharacter("A", { syllable: "A", tone: 2 })).toBe(false);
+  });
 });

@@ -41,6 +41,11 @@ const syllablePattern = new RegExp(
   `^[${INITIALS}]?[${MEDIALS}]?[${FINALS}]?$`,
   "u",
 );
+const englishLetterPattern = /^[A-Za-z]$/u;
+
+export function isEnglishLetter(value: string): boolean {
+  return englishLetterPattern.test(value);
+}
 
 export function isUnicodeScalarString(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
@@ -72,15 +77,23 @@ function optionalText(maxCodePoints: number) {
     .refine((value) => Array.from(value).length <= maxCodePoints, `最多 ${maxCodePoints} 個字元`);
 }
 
-export const PaddingUnitSchema = z.object({
-  syllable: z
-    .string()
-    .min(1, "請選擇注音")
-    .max(3)
-    .refine(isUnicodeScalarString, "注音包含無效的 Unicode")
-    .refine((value) => syllablePattern.test(value), "注音格式不正確"),
-  tone: z.number().int().min(1).max(5),
-});
+export const PaddingUnitSchema = z
+  .object({
+    syllable: z
+      .string()
+      .min(1, "請選擇注音")
+      .max(3)
+      .refine(isUnicodeScalarString, "注音包含無效的 Unicode")
+      .refine(
+        (value) => syllablePattern.test(value) || isEnglishLetter(value),
+        "注音或英文標註格式不正確",
+      ),
+    tone: z.number().int().min(1).max(5),
+  })
+  .refine(
+    (value) => !isEnglishLetter(value.syllable) || value.tone === 1,
+    { path: ["tone"], message: "英文標註不可帶聲調" },
+  );
 
 export const SubmissionDraftSchema = z
   .object({
@@ -190,9 +203,11 @@ export function normalizeDraft(draft: SubmissionDraft): SubmissionDraft {
 }
 
 export function toModelBopomofo(unit: PaddingUnit): string {
+  if (isEnglishLetter(unit.syllable)) return unit.syllable;
   return `${unit.syllable}${TONE_MARKS[unit.tone as Difficulty]}`;
 }
 
 export function displayBopomofo(unit: PaddingUnit): string {
+  if (isEnglishLetter(unit.syllable)) return unit.syllable;
   return `${unit.syllable}${DISPLAY_TONE_MARKS[unit.tone as Difficulty]}`;
 }

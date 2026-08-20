@@ -1,4 +1,4 @@
-import type { PaddingUnit } from "./schema";
+import { isEnglishLetter, type PaddingUnit } from "./schema";
 import candidateTable from "../data/bopomofo-char.json";
 
 export const BOPOMOFO_MAPPING_VERSION =
@@ -56,6 +56,9 @@ function getInverseTable(): Map<string, PaddingUnit[]> {
 }
 
 export function getReadingsForCharacter(character: string): PaddingUnit[] {
+  if (isEnglishLetter(character)) {
+    return [{ syllable: character, tone: 1 }];
+  }
   return (getInverseTable().get(character) ?? []).map((reading) => ({ ...reading }));
 }
 

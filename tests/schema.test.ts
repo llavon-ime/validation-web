@@ -82,6 +82,32 @@ describe("validation sample schema", () => {
     expect(displayBopomofo({ syllable: "ㄊㄚ", tone: 1 })).toBe("ㄊㄚˉ");
   });
 
+  it("accepts English annotations without adding a tone mark", () => {
+    const englishDraft = {
+      ...validDraft,
+      answer: "AI水",
+      padding: [
+        { syllable: "A", tone: 1 },
+        { syllable: "I", tone: 1 },
+        { syllable: "ㄕㄨㄟ", tone: 3 },
+      ],
+    } as const;
+
+    expect(SubmissionDraftSchema.safeParse(englishDraft).success).toBe(true);
+    expect(toModelBopomofo(englishDraft.padding[0])).toBe("A");
+    expect(displayBopomofo(englishDraft.padding[1])).toBe("I");
+  });
+
+  it("rejects a tone on an English annotation", () => {
+    expect(
+      SubmissionDraftSchema.safeParse({
+        ...validDraft,
+        answer: "A",
+        padding: [{ syllable: "A", tone: 2 }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("serializes the exact canonical JSONL field order without an id", () => {
     const sample: StoredValidationSample = {
       schemaVersion: 1,
