@@ -111,3 +111,13 @@ Nitro Node 入口為 `.output/server/index.mjs`。執行環境需提供相同環
 ## 授權
 
 網站程式碼依 [BSD 2-Clause License](LICENSE) 授權；validation dataset 之各筆投稿由投稿者保留權利並依 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 提供，統一姓名標示為「拉風輸入法組織（llavon-ime）」及資料集網址。
+
+## 人工多讀音標註
+
+同一網站的 `/pronunciations` 頁面提供逐字多選讀音、手動新增讀音與「說明（選填）」。候選表只提供建議，人工標註可新增表外但格式正確的注音；不改動原本驗證集 API 的候選驗證。至少一個字須有兩種不同讀音。
+
+沿用 GitHub 登入、同意書、App 安裝與 CC BY 4.0，後端發送 `append-pronunciation-sample` repository dispatch 至同一個 `llavon-ime/validation-set`。Action 寫入獨立的 `dataset/pronunciations.jsonl`，不混入 `validation.jsonl`。不需要新的 repo、App 或 secrets。
+
+**部署順序：先合併 validation-set 的新 Action，再部署本網站。** GitHub 接受 dispatch 不代表 workflow 已存在或完成；API 202 僅表示已排入。新功能使用同意書 2.1，明確區分一般驗證集和可供訓練的人工多讀音資料。
+
+格式與兩 repo 共用契約見 [docs/pronunciation-schema.md](docs/pronunciation-schema.md)。

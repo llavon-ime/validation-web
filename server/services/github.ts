@@ -1,5 +1,6 @@
 import { App } from "octokit";
 import { z } from "zod";
+import { canonicalizePronunciationSample, serializePronunciationSample, type PronunciationSample } from "../../shared/utils/pronunciation";
 import type {
   GitHubIdentity,
   StoredValidationSample,
@@ -81,12 +82,28 @@ export async function dispatchValidationSample(
   sample: StoredValidationSample,
   attribution: GitHubIdentity | null,
 ): Promise<SubmissionResponse> {
+  return dispatchToDataset(await createValidationDispatch(submissionId, sample, attribution));
+}
+
+export async function createPronunciationDispatch(submissionId: string, sample: PronunciationSample, attribution: GitHubIdentity | null) {
+  const canonicalSample = canonicalizePronunciationSample(sample);
+  return {
+    event_type: "append-pronunciation-sample" as const,
+    client_payload: { submissionId, sample: canonicalSample,
+      payloadSha256: await sha256HexUtf8(serializePronunciationSample(canonicalSample)), attribution },
+  };
+}
+
+export async function dispatchPronunciationSample(submissionId: string, sample: PronunciationSample, attribution: GitHubIdentity | null): Promise<SubmissionResponse> {
+  return dispatchToDataset(await createPronunciationDispatch(submissionId, sample, attribution));
+}
+
+async function dispatchToDataset(dispatch: ValidationDispatch | Awaited<ReturnType<typeof createPronunciationDispatch>>): Promise<SubmissionResponse> {
   const env = readGitHubAppEnv();
   const privateKey = normalizePrivateKey(env.GITHUB_APP_PRIVATE_KEY);
 
   const app = new App({ appId: env.GITHUB_APP_ID, privateKey });
   const octokit = await app.getInstallationOctokit(env.GITHUB_INSTALLATION_ID);
-  const dispatch = await createValidationDispatch(submissionId, sample, attribution);
   await octokit.rest.repos.createDispatchEvent({
     owner: DATASET_OWNER,
     repo: DATASET_REPO,
@@ -94,8 +111,8 @@ export async function dispatchValidationSample(
   });
 
   return {
-    id: submissionId,
+    id: dispatch.client_payload.submissionId,
     queued: true,
-    attributed: attribution !== null,
+    attributed: dispatch.client_payload.attribution !== null,
   };
 }

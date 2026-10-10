@@ -23,7 +23,7 @@ const validDraft = {
 
 describe("validation sample schema", () => {
   it("uses explicit versioned contribution and dataset terms", () => {
-    expect(CONTRIBUTION_AGREEMENT_VERSION).toBe("2.0");
+    expect(CONTRIBUTION_AGREEMENT_VERSION).toBe("2.1");
     expect(DATASET_LICENSE).toBe("CC-BY-4.0");
   });
 

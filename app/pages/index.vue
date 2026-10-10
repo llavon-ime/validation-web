@@ -249,6 +249,7 @@ onMounted(async () => {
       </a>
 
       <div class="account-area">
+        <NuxtLink class="dataset-link" to="/pronunciations">多讀音標註</NuxtLink>
         <a class="dataset-link" href="/dataset">瀏覽資料集</a>
         <span v-if="!sessionReady" class="session-placeholder">確認登入狀態…</span>
         <template v-else-if="user">

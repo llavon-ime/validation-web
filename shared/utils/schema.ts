@@ -15,7 +15,7 @@ export const DifficultySchema = z.union([
   z.literal(4),
   z.literal(5),
 ]);
-export const CONTRIBUTION_AGREEMENT_VERSION = "2.0";
+export const CONTRIBUTION_AGREEMENT_VERSION = "2.1";
 export const DATASET_LICENSE = "CC-BY-4.0" as const;
 
 export const TONE_MARKS = {
