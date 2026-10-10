@@ -4,7 +4,7 @@ import { createApp, createError, defineEventHandler, toWebHandler } from "h3";
 const mocks = vi.hoisted(() => ({ session: vi.fn(), agreement: vi.fn(), dispatch: vi.fn() }));
 vi.mock("../server/services/agreement", () => ({ getAgreementAcceptance: mocks.agreement }));
 vi.mock("../server/services/github", () => ({ dispatchPronunciationSample: mocks.dispatch }));
-const sample = { schemaVersion: 1, license: "CC-BY-4.0", kind: "pronunciation", context: "", answer: "鉈",
+const sample = { schemaVersion: 1, license: "CC-BY-4.0", kind: "pronunciation", answer: "鉈",
   readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]], description: "" };
 const draft = { submissionId: "0262684d-61eb-4c2b-906f-62d168bcd021", sample,
   publicContributionConsent: true, trainingUseConsent: true, creditAsCoauthor: true };

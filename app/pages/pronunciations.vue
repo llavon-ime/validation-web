@@ -9,7 +9,6 @@ import ContributionAgreement from "../components/ContributionAgreement.vue";
 import MultipleReadingAligner from "../components/MultipleReadingAligner.vue";
 useHead({ title: "人工多讀音標註・拉風輸入法" });
 const DRAFT_KEY = "llavon-pronunciation-draft-v1";
-const context = ref("");
 const answer = ref("");
 const description = ref("");
 const readings = ref<PaddingUnit[][]>([]);
@@ -31,12 +30,12 @@ const { user, ready: sessionReady, clear: signOut } = useUserSession();
 const route = useRoute();
 const characters = computed(() => Array.from(answer.value.normalize("NFC")));
 const sample = computed(() => ({ schemaVersion: 1 as const, license: DATASET_LICENSE, kind: "pronunciation" as const,
-  context: context.value.normalize("NFC"), answer: answer.value.normalize("NFC"),
+  answer: answer.value.normalize("NFC"),
   readings: readings.value, description: description.value.normalize("NFC") }));
 const draft = computed(() => PronunciationDraftSchema.safeParse({ submissionId: submissionId.value, sample: sample.value,
   publicContributionConsent: consent.value, trainingUseConsent: trainingConsent.value, creditAsCoauthor: credit.value }));
 const sampleValidation = computed(() => PronunciationSampleSchema.safeParse(sample.value));
-const savedSchema = z.object({ submissionId: z.uuid(), context: z.string(), answer: z.string(), description: z.string(),
+const savedSchema = z.object({ submissionId: z.uuid(), answer: z.string(), description: z.string(),
   readings: z.array(z.array(PaddingUnitSchema)), consent: z.boolean(), trainingConsent: z.boolean(), credit: z.boolean() });
 watch(answer, (value, old) => {
   const previous = Array.from(old.normalize("NFC"));
@@ -49,12 +48,12 @@ watch(answer, (value, old) => {
 function saveDraft() {
   if (!storageReady.value) return;
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ submissionId: submissionId.value, context: context.value,
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ submissionId: submissionId.value,
       answer: answer.value, description: description.value, readings: readings.value,
       consent: consent.value, trainingConsent: trainingConsent.value, credit: credit.value }));
   } catch { storageWarning.value = "瀏覽器無法保存草稿，離開前請先完成提交。"; }
 }
-watch([context, answer, description, readings, consent, trainingConsent, credit], () => { result.value = null; saveDraft(); }, { deep: true });
+watch([answer, description, readings, consent, trainingConsent, credit], () => { result.value = null; saveDraft(); }, { deep: true });
 function preview() {
   errorMessage.value = "";
   if (!draft.value.success) { errorMessage.value = draft.value.error.issues[0]?.message ?? "請檢查欄位"; return; }
@@ -86,7 +85,6 @@ async function acceptAgreement() {
 }
 function example() {
   answer.value = "部署";
-  context.value = "";
   description.value = "「署」可接受三聲與口語常用的四聲。";
   readings.value = [[{ syllable: "ㄅㄨ", tone: 4 }], [{ syllable: "ㄕㄨ", tone: 3 }, { syllable: "ㄕㄨ", tone: 4 }]];
 }
@@ -97,7 +95,7 @@ onMounted(async () => {
     const saved = raw ? savedSchema.safeParse(JSON.parse(raw)) : null;
     if (saved?.success) {
       const s = saved.data;
-      submissionId.value = s.submissionId; context.value = s.context; answer.value = s.answer;
+      submissionId.value = s.submissionId; answer.value = s.answer;
       description.value = s.description; readings.value = s.readings;
       consent.value = s.consent; trainingConsent.value = s.trainingConsent; credit.value = s.credit;
     }
@@ -125,10 +123,9 @@ onMounted(async () => {
       <section class="page-heading"><h1>人工多讀音標註</h1><button type="button" class="text-button" @click="example">填入「部署」範例 ↗</button></section>
       <section class="form-card" aria-label="多讀音標註表單">
         <form @submit.prevent="preview">
-          <div class="field-group"><div class="field-label-row"><label for="p-context"><span class="field-index">1</span>前文（選填）</label></div><textarea id="p-context" v-model="context" rows="3" placeholder="例如：我們準備在今晚" /></div>
-          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">2</span>標註文字</label></div><input id="p-answer" v-model="answer" placeholder="例如：部署" required autocomplete="off" /></div>
-          <div class="field-group"><div class="field-label-row"><span class="field-label"><span class="field-index">3</span>可接受的讀音</span></div><MultipleReadingAligner :characters="characters" :readings="readings" @change="(index, values) => readings[index] = values" /></div>
-          <div class="field-group"><div class="field-label-row"><label for="p-description"><span class="field-index">4</span>說明（選填）</label></div><textarea id="p-description" v-model="description" rows="4" placeholder="例如：署的四聲是日常口語讀法" /></div>
+          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label></div><input id="p-answer" v-model="answer" placeholder="例如：部署" required autocomplete="off" /></div>
+          <div class="field-group"><div class="field-label-row"><span class="field-label"><span class="field-index">2</span>可接受的讀音</span></div><MultipleReadingAligner :characters="characters" :readings="readings" @change="(index, values) => readings[index] = values" /></div>
+          <div class="field-group"><div class="field-label-row"><label for="p-description"><span class="field-index">3</span>說明（選填）</label></div><textarea id="p-description" v-model="description" rows="4" placeholder="例如：署的四聲是日常口語讀法" /></div>
           <label class="consent-row"><input v-model="consent" type="checkbox" /><span>我確認內容可公開、不含私人或敏感資料，且我有權提交這些文字。</span></label>
           <label class="consent-row"><input v-model="trainingConsent" type="checkbox" /><span>我確認已選讀音在這筆資料中都可接受，並同意將本筆人工標註及說明依 CC BY 4.0 公開，用於模型訓練。</span></label>
           <label class="consent-row attribution-row"><input v-model="credit" type="checkbox" /><span><strong>（可選）在 GitHub commit 列為共同作者</strong></span></label>
@@ -144,7 +141,7 @@ onMounted(async () => {
     <ContributionAgreement :open="agreementReady && !agreementAcceptedAt" :version="CONTRIBUTION_AGREEMENT_VERSION" :loading="agreementLoading" :error="agreementError" @accept="acceptAgreement" />
     <dialog ref="review" class="review-dialog pronunciation-review" aria-labelledby="p-review-title" @cancel="submitting && $event.preventDefault()">
       <header class="review-header"><h2 id="p-review-title">確認這筆多讀音標註</h2><button type="button" :disabled="submitting" aria-label="關閉預覽" @click="review?.close()">×</button></header>
-      <div class="review-body"><p v-if="context">前文：{{ context }}</p><div class="pronunciation-preview"><div v-for="(character, index) in characters" :key="index"><strong>{{ character }}</strong><span v-for="r in readings[index]" :key="`${r.syllable}:${r.tone}`">{{ displayBopomofo(r) }}</span></div></div><h3>說明</h3><p class="description-preview">{{ description || '未填寫' }}</p></div>
+      <div class="review-body"><div class="pronunciation-preview"><div v-for="(character, index) in characters" :key="index"><strong>{{ character }}</strong><span v-for="r in readings[index]" :key="`${r.syllable}:${r.tone}`">{{ displayBopomofo(r) }}</span></div></div><h3>說明</h3><p class="description-preview">{{ description || '未填寫' }}</p></div>
       <footer class="review-actions"><button type="button" class="review-edit" :disabled="submitting" @click="review?.close()">返回修改</button><button type="button" class="review-confirm" :disabled="submitting" @click="submit">{{ submitting ? '正在提交…' : user ? '確認並提交' : '確認並使用 GitHub 登入' }}</button></footer>
     </dialog>
   </div>

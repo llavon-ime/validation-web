@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DATASET_LICENSE, LIMITS, PaddingUnitSchema, isUnicodeScalarString } from "./schema";
 
-export const PRONUNCIATION_LIMITS = { ...LIMITS, description: 1000, alternatives: 8 } as const;
+export const PRONUNCIATION_LIMITS = { answer: LIMITS.answer, description: 1000, alternatives: 8 } as const;
 const text = (max: number, min = 0) => z.string()
   .refine(isUnicodeScalarString, "文字包含無效的 Unicode")
   .refine(v => v.normalize("NFC") === v, "文字必須使用 NFC")
@@ -12,8 +12,7 @@ export const PronunciationSampleSchema = z.object({
   schemaVersion: z.literal(1),
   license: z.literal(DATASET_LICENSE),
   kind: z.literal("pronunciation"),
-  context: text(LIMITS.context),
-  answer: text(LIMITS.answer, 1).refine(v => /^\p{Script=Han}+$/u.test(v), "標註文字請使用漢字；其他內容可放在前文或說明"),
+  answer: text(LIMITS.answer, 1).refine(v => /^\p{Script=Han}+$/u.test(v), "標註文字請使用漢字；其他內容可放在說明"),
   readings: z.array(z.array(reading).min(1, "每個字至少選一個讀音").max(PRONUNCIATION_LIMITS.alternatives)).min(1).max(LIMITS.answer),
   description: text(PRONUNCIATION_LIMITS.description),
 }).strict().superRefine((v, ctx) => {
@@ -36,7 +35,7 @@ export type PronunciationDraft = z.infer<typeof PronunciationDraftSchema>;
 export function canonicalizePronunciationSample(value: PronunciationSample): PronunciationSample {
   const v = PronunciationSampleSchema.parse(value);
   return { schemaVersion: 1, license: DATASET_LICENSE, kind: "pronunciation",
-    context: v.context, answer: v.answer,
+    answer: v.answer,
     readings: v.readings.map(rs => rs.map(r => ({ syllable: r.syllable, tone: r.tone }))
       .sort((a, b) => a.syllable < b.syllable ? -1 : a.syllable > b.syllable ? 1 : a.tone - b.tone)),
     description: v.description };

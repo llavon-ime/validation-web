@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { isReadingForCharacter } from "../shared/utils/zhuyin";
 
 const sample = { schemaVersion: 1 as const, license: "CC-BY-4.0" as const, kind: "pronunciation" as const,
-  context: "我們準備", answer: "部署", readings: [[{ syllable: "ㄅㄨ", tone: 4 }], [{ syllable: "ㄕㄨ", tone: 3 }, { syllable: "ㄕㄨ", tone: 4 }]], description: "" };
+  answer: "部署", readings: [[{ syllable: "ㄅㄨ", tone: 4 }], [{ syllable: "ㄕㄨ", tone: 3 }, { syllable: "ㄕㄨ", tone: 4 }]], description: "" };
 describe("manual pronunciation annotations", () => {
   it("accepts a blank explanation and readings outside the candidate table", () => {
     const value = { ...sample, answer: "鉈", readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] };
