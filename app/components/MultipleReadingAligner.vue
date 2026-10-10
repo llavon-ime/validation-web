@@ -47,14 +47,13 @@ function add(index: number) {
 </script>
 
 <template>
-  <div v-if="!characters.length" class="alignment-empty"><span class="empty-glyph">ㄕ</span><div><strong>先輸入要標註的文字</strong><p>每個字可選多個讀音，也能手動補上口語讀音。</p></div></div>
+  <div v-if="!characters.length" class="alignment-empty"><span class="empty-glyph">ㄕ</span><strong>先輸入要標註的文字</strong></div>
   <div v-else class="multi-alignment">
     <article v-for="(character, index) in characters" :key="`${index}-${character}`" class="multi-reading-card">
-      <div class="multi-character"><span class="position-label">第 {{ index + 1 }} 字</span><strong class="answer-character">{{ character }}</strong><span class="reading-count">已選 {{ readings[index]?.length ?? 0 }} 音</span></div>
+      <div class="multi-character"><strong class="answer-character">{{ character }}</strong></div>
       <div class="multi-options">
         <div class="reading-choices" role="group" :aria-label="`第 ${index + 1} 字 ${character} 的可接受讀音`">
           <button v-for="option in options(index)" :key="keyOf(option)" type="button" class="reading-choice" :class="{ selected: selected(index, option) }" :aria-pressed="selected(index, option)" @click="toggle(index, option)">{{ displayBopomofo(option) }}<span v-if="selected(index, option)" aria-hidden="true"> ✓</span></button>
-          <span v-if="!options(index).length" class="field-hint">沒有建議讀音，請在下方新增。</span>
         </div>
         <div class="custom-reading-row">
           <input v-model="custom[index]" :aria-label="`第 ${index + 1} 字的自訂注音`" placeholder="其他讀音，如 ㄕㄨ" maxlength="5" @keydown.enter.prevent="add(index)" />
