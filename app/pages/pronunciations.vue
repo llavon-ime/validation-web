@@ -134,9 +134,9 @@ onMounted(async () => {
       <section class="page-heading"><h1>人工多讀音標註</h1></section>
       <section class="form-card" aria-label="多讀音標註表單">
         <form @submit.prevent="preview">
-          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label><span class="dictionary-links"><a v-if="dictionaryLinks?.revised" :href="dictionaryLinks.revised" target="_blank" rel="noreferrer">重編本 ↗</a><a v-if="dictionaryLinks?.concised" :href="dictionaryLinks.concised" target="_blank" rel="noreferrer">簡編本 ↗</a></span></div><input id="p-answer" v-model="answer" type="text" placeholder="例如：部署" required autocomplete="off" /></div>
+          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label><span class="dictionary-links"><a v-if="dictionaryLinks?.revised" :href="dictionaryLinks.revised" target="_blank" rel="noreferrer">重編本 ↗</a><a v-if="dictionaryLinks?.concised" :href="dictionaryLinks.concised" target="_blank" rel="noreferrer">簡編本 ↗</a></span></div><input id="p-answer" v-model="answer" type="text" required autocomplete="off" /></div>
           <div class="field-group"><div class="field-label-row"><span class="field-label"><span class="field-index">2</span>可接受的讀音</span></div><ZhuyinAligner :cells="cells" multiple @change="(index, values) => readings[index] = values" /></div>
-          <div class="field-group"><div class="field-label-row"><label for="p-description"><span class="field-index">3</span>說明（選填）</label></div><textarea id="p-description" v-model="description" rows="4" placeholder="例如：署的四聲是日常口語讀法" /></div>
+          <div class="field-group"><div class="field-label-row"><label for="p-description"><span class="field-index">3</span>說明（選填）</label></div><textarea id="p-description" v-model="description" rows="4" /></div>
           <label class="consent-row"><input v-model="consent" type="checkbox" /><span>我確認內容可公開、不含私人或敏感資料，且我有權提交這些文字。</span></label>
           <label class="consent-row"><input v-model="trainingConsent" type="checkbox" /><span>我確認已選讀音在這筆資料中都可接受，並同意將本筆人工標註及說明依 CC BY 4.0 公開，用於模型訓練。</span></label>
           <label class="consent-row attribution-row"><input v-model="credit" type="checkbox" /><span><strong>（可選）在 GitHub commit 列為共同作者</strong></span></label>
