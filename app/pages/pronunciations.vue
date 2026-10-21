@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { z } from "zod";
 import { CONTRIBUTION_AGREEMENT_VERSION, DATASET_LICENSE, PaddingUnitSchema, displayBopomofo, type PaddingUnit, type SubmissionResponse } from "#shared/utils/schema";
 import { PronunciationDraftSchema, PronunciationSampleSchema } from "#shared/utils/pronunciation";
-import { getReadingsForCharacter } from "#shared/utils/zhuyin";
+import { getReadingsForCharacter, isCandidateTableLoaded, loadCandidateTable } from "#shared/utils/zhuyin";
 import type { DictionaryLinks } from "#shared/utils/dictionary";
 import { acceptContributionAgreement, fetchDictionaryLinks, getContributionAgreement, submitPronunciationSample } from "../utils/api";
 import ContributionAgreement from "../components/ContributionAgreement.vue";
@@ -18,6 +18,7 @@ const trainingConsent = ref(false);
 const credit = ref(true);
 const submissionId = ref("");
 const storageReady = ref(false);
+const tableReady = ref(isCandidateTableLoaded());
 const storageWarning = ref("");
 const errorMessage = ref("");
 const result = ref<SubmissionResponse | null>(null);
@@ -30,8 +31,8 @@ const agreementError = ref("");
 const { user, ready: sessionReady, clear: signOut } = useUserSession();
 const route = useRoute();
 const characters = computed(() => Array.from(answer.value.normalize("NFC")));
-const cells = computed(() => characters.value.map((character, index) => ({ character,
-  options: getReadingsForCharacter(character), selected: readings.value[index] ?? [] })));
+const cells = computed(() => tableReady.value ? characters.value.map((character, index) => ({ character,
+  options: getReadingsForCharacter(character), selected: readings.value[index] ?? [] })) : []);
 const sample = computed(() => ({ schemaVersion: 1 as const, license: DATASET_LICENSE, kind: "pronunciation" as const,
   answer: answer.value.normalize("NFC"),
   readings: readings.value, description: description.value.normalize("NFC") }));
@@ -101,6 +102,15 @@ async function acceptAgreement() {
 }
 onMounted(async () => {
   submissionId.value = crypto.randomUUID();
+  try {
+    await loadCandidateTable();
+    tableReady.value = true;
+    readings.value = characters.value.map((character, index) => {
+      const current = readings.value[index] ?? [];
+      const options = getReadingsForCharacter(character);
+      return current.length || options.length !== 1 ? current : options;
+    });
+  } catch { errorMessage.value = "無法載入注音字表，請重新整理頁面"; }
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
     const saved = raw ? savedSchema.safeParse(JSON.parse(raw)) : null;

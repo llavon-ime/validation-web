@@ -10,6 +10,7 @@ import { isReadingForCharacter } from "../../shared/utils/zhuyin";
 import { getAgreementAcceptance } from "../services/agreement";
 import { dispatchValidationSample } from "../services/github";
 import { dryRunResponse, isLoginRequired } from "../utils/login";
+import { requireCandidateTable } from "../utils/candidate-table";
 import { assertSameOrigin } from "../utils/security";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
@@ -42,6 +43,7 @@ export default defineEventHandler(async (event) => {
   } catch {
     throw createError({ statusCode: 400, statusMessage: "JSON 格式錯誤" });
   }
+  await requireCandidateTable();
   const parsed = SubmissionDraftSchema.safeParse(input);
   if (!parsed.success) {
     throw createError({

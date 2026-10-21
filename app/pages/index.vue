@@ -11,6 +11,7 @@ import {
 import {
   getReadingsForCharacter,
   isReadingForCharacter,
+  loadCandidateTable,
 } from "#shared/utils/zhuyin";
 import { computed, onMounted, ref, watch } from "vue";
 import {
@@ -222,7 +223,13 @@ watch([sessionReady, user, formComplete], () => {
 });
 
 onMounted(async () => {
-  loadDraft();
+  try {
+    await loadCandidateTable();
+    loadDraft();
+    rebuildCells();
+  } catch {
+    errorMessage.value = "無法載入注音字表，請重新整理頁面";
+  }
   if (!submissionId.value) submissionId.value = crypto.randomUUID();
   try {
     const response = await getContributionAgreement();

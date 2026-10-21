@@ -10,7 +10,6 @@
 app/       Vue 頁面、元件與樣式
 server/    Nitro API、OAuth 路由與 GitHub App 服務
 shared/    前後端共用 schema 與驗證邏輯
-vendor/    ime-core submodule，提供注音候選表
 public/    靜態資源
 tests/     schema、注音與 API 測試
 scripts/   品牌資源同步工具
@@ -45,11 +44,7 @@ npm run preview
 npm run sync:brand
 ```
 
-注音候選表直接讀取 `vendor/ime-core` submodule 的 `table/bopomofo_char.json`，與輸入法共用同一份字表，不另存副本。clone 時請加上 `--recurse-submodules`，或在既有 clone 執行 `git submodule update --init`；要更新字表時更新 submodule 指向的 commit：
-
-```powershell
-git submodule update --remote vendor/ime-core
-```
+注音候選表在執行時從 [`llavon-ime/ime-core`](https://github.com/llavon-ime/ime-core) `main` 分支的 `table/bopomofo_char.json` 動態取得，與輸入法共用同一份字表，不另存副本，上游更新後自動生效。伺服器每 10 分鐘背景更新一次，更新失敗時沿用上次成功載入的字表；瀏覽器在頁面載入時取得。測試使用 `tests/fixtures/bopomofo-char.json` 的子集，不連網。
 
 `sync:brand` 從 `llavon-ime` GitHub 組織頭像同步網站 Logo，並以 SHA-256 鎖定已審核版本。
 

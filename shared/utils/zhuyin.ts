@@ -1,6 +1,9 @@
 import { isEnglishLetter, type PaddingUnit } from "./schema";
-// 字表唯一來源：ime-core submodule，更新請 bump submodule
-import candidateTable from "../../vendor/ime-core/table/bopomofo_char.json";
+
+export const BOPOMOFO_TABLE_URL =
+  "https://raw.githubusercontent.com/llavon-ime/ime-core/main/table/bopomofo_char.json";
+const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+const REQUEST_TIMEOUT_MS = 10_000;
 
 const toneByMark: Record<string, PaddingUnit["tone"]> = {
   " ": 1,
@@ -11,6 +14,8 @@ const toneByMark: Record<string, PaddingUnit["tone"]> = {
 };
 
 let inverseTable: Map<string, PaddingUnit[]> | undefined;
+let loadedAt = 0;
+let pending: Promise<void> | undefined;
 
 function parseReading(value: string): PaddingUnit | null {
   const toneMark = value.at(-1);
@@ -25,39 +30,77 @@ function readingKey(reading: PaddingUnit): string {
   return `${reading.syllable}:${reading.tone}`;
 }
 
-function getInverseTable(): Map<string, PaddingUnit[]> {
-  if (inverseTable) return inverseTable;
+function buildInverseTable(candidateTable: unknown): Map<string, PaddingUnit[]> {
+  if (!candidateTable || typeof candidateTable !== "object" || Array.isArray(candidateTable)) {
+    throw new Error("注音字表格式錯誤");
+  }
 
-  inverseTable = new Map();
-  for (const [rawReading, candidates] of Object.entries(
-    candidateTable as Record<string, string[]>,
-  )) {
+  const table = new Map<string, PaddingUnit[]>();
+  for (const [rawReading, candidates] of Object.entries(candidateTable)) {
     const reading = parseReading(rawReading);
-    if (!reading) continue;
+    if (!reading || !Array.isArray(candidates)) continue;
 
     for (const candidate of candidates) {
-      const existing = inverseTable.get(candidate) ?? [];
+      if (typeof candidate !== "string") continue;
+      const existing = table.get(candidate) ?? [];
       if (!existing.some((item) => readingKey(item) === readingKey(reading))) {
         existing.push(reading);
-        inverseTable.set(candidate, existing);
+        table.set(candidate, existing);
       }
     }
   }
+  if (table.size === 0) throw new Error("注音字表是空的");
 
-  for (const readings of inverseTable.values()) {
+  for (const readings of table.values()) {
     readings.sort((left, right) =>
       left.syllable.localeCompare(right.syllable, "zh-Hant") || left.tone - right.tone,
     );
   }
 
-  return inverseTable;
+  return table;
+}
+
+export function setCandidateTable(candidateTable: unknown): void {
+  inverseTable = buildInverseTable(candidateTable);
+  loadedAt = Date.now();
+}
+
+async function fetchCandidateTable(): Promise<void> {
+  const response = await fetch(BOPOMOFO_TABLE_URL, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    throw new Error(`無法載入注音字表（HTTP ${response.status}）`);
+  }
+  setCandidateTable(await response.json());
+}
+
+export function loadCandidateTable(): Promise<void> {
+  if (inverseTable && Date.now() - loadedAt < REFRESH_INTERVAL_MS) {
+    return Promise.resolve();
+  }
+  pending ??= fetchCandidateTable().finally(() => {
+    pending = undefined;
+  });
+  if (!inverseTable) return pending;
+
+  pending.catch((error) => {
+    console.warn("Bopomofo table refresh failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  });
+  return Promise.resolve();
+}
+
+export function isCandidateTableLoaded(): boolean {
+  return inverseTable !== undefined;
 }
 
 export function getReadingsForCharacter(character: string): PaddingUnit[] {
   if (isEnglishLetter(character)) {
     return [{ syllable: character, tone: 1 }];
   }
-  return (getInverseTable().get(character) ?? []).map((reading) => ({ ...reading }));
+  return (inverseTable?.get(character) ?? []).map((reading) => ({ ...reading }));
 }
 
 export function isReadingForCharacter(

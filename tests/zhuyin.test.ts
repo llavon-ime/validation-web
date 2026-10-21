@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getReadingsForCharacter, isReadingForCharacter } from "../shared/utils/zhuyin.ts";
+import {
+  getReadingsForCharacter,
+  isReadingForCharacter,
+  setCandidateTable,
+} from "../shared/utils/zhuyin.ts";
 
 describe("bopomofo candidate map", () => {
   it("finds the expected reading for a common character", () => {
@@ -17,5 +21,11 @@ describe("bopomofo candidate map", () => {
     expect(isReadingForCharacter("A", { syllable: "A", tone: 1 })).toBe(true);
     expect(isReadingForCharacter("A", { syllable: "a", tone: 1 })).toBe(false);
     expect(isReadingForCharacter("A", { syllable: "A", tone: 2 })).toBe(false);
+  });
+
+  it("rejects malformed tables without replacing the loaded one", () => {
+    expect(() => setCandidateTable([])).toThrow();
+    expect(() => setCandidateTable({})).toThrow();
+    expect(isReadingForCharacter("你", { syllable: "ㄋㄧ", tone: 3 })).toBe(true);
   });
 });
