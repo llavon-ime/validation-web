@@ -36,7 +36,7 @@ html {
 }
 
 body {
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   margin: 0;
   background: #f7f4ee;
@@ -1336,7 +1336,36 @@ footer a {
 @media (max-width: 640px) {
   .topbar {
     min-height: 64px;
+    gap: 8px;
     padding: 0 14px;
+  }
+
+  .account-area {
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .dataset-topbar {
+    flex-wrap: wrap;
+    padding-block: 9px;
+  }
+
+  .dataset-topbar .brand strong {
+    white-space: nowrap;
+  }
+
+  .dataset-topbar .account-area {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .dataset-topbar .dataset-link {
+    flex: 1 1 0;
+    text-align: center;
+  }
+
+  .dataset-topbar .session-placeholder {
+    display: none;
   }
 
   .brand-logo {
@@ -1373,33 +1402,89 @@ footer a {
 
   .dataset-page {
     width: min(100% - 24px, 980px);
+    padding-top: 28px;
   }
 
   .dataset-heading {
     align-items: flex-start;
     flex-direction: column;
-    gap: 12px;
+    gap: 9px;
   }
 
   .dataset-summary {
-    gap: 14px;
-    flex-wrap: wrap;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 12px;
+    padding: 12px;
   }
 
   .dataset-summary a {
-    width: 100%;
     margin-left: 0;
   }
 
+  .dataset-kinds {
+    width: 100%;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .dataset-kinds :is(a, button) {
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .dataset-search-row {
+    padding: 12px 12px 9px;
+  }
+
+  .dataset-search {
+    padding-right: 60px;
+  }
+
+  .clear-search {
+    right: 22px;
+  }
+
+  .dataset-toolbar > .dataset-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    overflow: visible;
+    padding: 0 12px 12px;
+  }
+
+  .dataset-toolbar > .dataset-filters :is(button, a) {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding-inline: 7px;
+  }
+
   .dataset-card-body {
-    padding-right: 13px;
-    padding-left: 13px;
+    padding: 16px 13px 11px;
   }
 
   .dataset-card-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 5px;
+    min-height: 42px;
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .dataset-card-header > span:first-child {
+    min-width: 0;
+  }
+
+  .dataset-difficulty {
+    flex: 0 0 auto;
+  }
+
+  .dataset-sentence {
+    min-height: 48px;
+    font-size: clamp(17px, 5.5vw, 21px);
+    line-height: 2.2;
   }
 
   .dataset-notice {
