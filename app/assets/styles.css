@@ -286,6 +286,16 @@ form {
   font-size: 10px;
 }
 
+.dictionary-links {
+  display: flex;
+  gap: 12px;
+}
+
+.dictionary-links a {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
 .field-label-row > div {
   display: flex;
   flex-direction: column;

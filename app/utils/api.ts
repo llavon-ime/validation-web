@@ -1,3 +1,4 @@
+import type { DictionaryLinks } from "#shared/utils/dictionary";
 import type {
   AgreementResponse,
   SubmissionDraft,
@@ -17,6 +18,12 @@ async function readJson<T>(response: Response): Promise<T> {
     );
   }
   return body as T;
+}
+
+export async function fetchDictionaryLinks(word: string): Promise<DictionaryLinks> {
+  return readJson<DictionaryLinks>(await fetch(`/api/dictionary?word=${encodeURIComponent(word)}`, {
+    headers: { Accept: "application/json" },
+  }));
 }
 
 export async function submitPronunciationSample(draft: import("#shared/utils/pronunciation").PronunciationDraft): Promise<SubmissionResponse> {

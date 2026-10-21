@@ -4,7 +4,8 @@ import { z } from "zod";
 import { CONTRIBUTION_AGREEMENT_VERSION, DATASET_LICENSE, PaddingUnitSchema, displayBopomofo, type PaddingUnit, type SubmissionResponse } from "#shared/utils/schema";
 import { PronunciationDraftSchema, PronunciationSampleSchema } from "#shared/utils/pronunciation";
 import { getReadingsForCharacter } from "#shared/utils/zhuyin";
-import { acceptContributionAgreement, getContributionAgreement, submitPronunciationSample } from "../utils/api";
+import type { DictionaryLinks } from "#shared/utils/dictionary";
+import { acceptContributionAgreement, fetchDictionaryLinks, getContributionAgreement, submitPronunciationSample } from "../utils/api";
 import ContributionAgreement from "../components/ContributionAgreement.vue";
 import ZhuyinAligner from "../components/ZhuyinAligner.vue";
 useHead({ title: "人工多讀音標註・拉風輸入法" });
@@ -37,6 +38,19 @@ const sample = computed(() => ({ schemaVersion: 1 as const, license: DATASET_LIC
 const draft = computed(() => PronunciationDraftSchema.safeParse({ submissionId: submissionId.value, sample: sample.value,
   publicContributionConsent: consent.value, trainingUseConsent: trainingConsent.value, creditAsCoauthor: credit.value }));
 const sampleValidation = computed(() => PronunciationSampleSchema.safeParse(sample.value));
+const dictionaryLinks = ref<DictionaryLinks | null>(null);
+let dictionaryTimer: ReturnType<typeof setTimeout> | undefined;
+watch(() => answer.value.normalize("NFC"), (word) => {
+  dictionaryLinks.value = null;
+  clearTimeout(dictionaryTimer);
+  if (!/^\p{Script=Han}+$/u.test(word)) return;
+  dictionaryTimer = setTimeout(async () => {
+    try {
+      const links = await fetchDictionaryLinks(word);
+      if (word === answer.value.normalize("NFC")) dictionaryLinks.value = links;
+    } catch { /* 查詢失敗就不顯示辭典連結 */ }
+  }, 400);
+});
 const savedSchema = z.object({ submissionId: z.uuid(), answer: z.string(), description: z.string(),
   readings: z.array(z.array(PaddingUnitSchema)), consent: z.boolean(), trainingConsent: z.boolean(), credit: z.boolean() });
 watch(answer, (value, old) => {
@@ -120,7 +134,7 @@ onMounted(async () => {
       <section class="page-heading"><h1>人工多讀音標註</h1></section>
       <section class="form-card" aria-label="多讀音標註表單">
         <form @submit.prevent="preview">
-          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label></div><input id="p-answer" v-model="answer" type="text" placeholder="例如：部署" required autocomplete="off" /></div>
+          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label><span class="dictionary-links"><a v-if="dictionaryLinks?.revised" :href="dictionaryLinks.revised" target="_blank" rel="noreferrer">重編本 ↗</a><a v-if="dictionaryLinks?.concised" :href="dictionaryLinks.concised" target="_blank" rel="noreferrer">簡編本 ↗</a></span></div><input id="p-answer" v-model="answer" type="text" placeholder="例如：部署" required autocomplete="off" /></div>
           <div class="field-group"><div class="field-label-row"><span class="field-label"><span class="field-index">2</span>可接受的讀音</span></div><ZhuyinAligner :cells="cells" multiple @change="(index, values) => readings[index] = values" /></div>
           <div class="field-group"><div class="field-label-row"><label for="p-description"><span class="field-index">3</span>說明（選填）</label></div><textarea id="p-description" v-model="description" rows="4" placeholder="例如：署的四聲是日常口語讀法" /></div>
           <label class="consent-row"><input v-model="consent" type="checkbox" /><span>我確認內容可公開、不含私人或敏感資料，且我有權提交這些文字。</span></label>
