@@ -251,7 +251,7 @@ onMounted(async () => {
         <img class="brand-logo" src="/llavon-logo.png" alt="拉風輸入法 Logo" />
         <span>
           <strong>拉風輸入法</strong>
-          <small>驗證集共筆</small>
+          <small>驗證集貢獻網站</small>
         </span>
       </a>
 

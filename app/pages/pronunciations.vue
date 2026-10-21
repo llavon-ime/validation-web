@@ -132,7 +132,7 @@ onMounted(async () => {
 <template>
   <div class="site-shell">
     <header class="topbar">
-      <NuxtLink class="brand" to="/"><img class="brand-logo" src="/llavon-logo.png" alt="拉風輸入法 Logo" /><span><strong>拉風輸入法</strong><small>驗證集共筆</small></span></NuxtLink>
+      <NuxtLink class="brand" to="/"><img class="brand-logo" src="/llavon-logo.png" alt="拉風輸入法 Logo" /><span><strong>拉風輸入法</strong><small>驗證集貢獻網站</small></span></NuxtLink>
       <div class="account-area">
         <NuxtLink class="dataset-link" to="/">驗證集投稿</NuxtLink><NuxtLink class="dataset-link active" to="/pronunciations">多讀音標註</NuxtLink><NuxtLink class="dataset-link" to="/dataset">瀏覽資料集</NuxtLink>
         <span v-if="!sessionReady" class="session-placeholder">確認登入狀態…</span>

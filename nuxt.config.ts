@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "zh-Hant" },
-      title: "拉風輸入法・驗證集共筆",
+      title: "拉風輸入法・驗證集貢獻網站",
       meta: [
         { name: "theme-color", content: "#f7f4ee" },
         {
