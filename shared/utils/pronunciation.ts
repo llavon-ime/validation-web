@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DATASET_LICENSE, LIMITS, PaddingUnitSchema, isUnicodeScalarString } from "./schema";
+import { isReadingForCharacter } from "./zhuyin";
 
 export const PRONUNCIATION_LIMITS = { answer: LIMITS.answer, description: 1000, alternatives: 8 } as const;
 const text = (max: number, min = 0) => z.string()
@@ -8,7 +9,8 @@ const text = (max: number, min = 0) => z.string()
   .refine(v => Array.from(v).length >= min && Array.from(v).length <= max, `字數必須介於 ${min}–${max}`);
 
 const reading = PaddingUnitSchema.refine(v => /^[ㄅ-ㄩ]+$/u.test(v.syllable), "請填寫注音");
-export const PronunciationSampleSchema = z.object({
+// 已收錄資料的結構；讀音是否在候選表內只在投稿時檢查，候選表日後更新也不影響瀏覽舊資料
+export const PronunciationRecordSchema = z.object({
   schemaVersion: z.literal(1),
   license: z.literal(DATASET_LICENSE),
   kind: z.literal("pronunciation"),
@@ -20,6 +22,12 @@ export const PronunciationSampleSchema = z.object({
   if (!v.readings.some(rs => rs.length > 1)) ctx.addIssue({ code: "custom", path: ["readings"], message: "至少一個字須標註兩種可接受讀音" });
   v.readings.forEach((rs, i) => {
     if (new Set(rs.map(r => `${r.syllable}:${r.tone}`)).size !== rs.length) ctx.addIssue({ code: "custom", path: ["readings", i], message: "同一字的讀音不可重複" });
+  });
+});
+export const PronunciationSampleSchema = PronunciationRecordSchema.superRefine((v, ctx) => {
+  const characters = Array.from(v.answer);
+  v.readings.forEach((rs, i) => {
+    if (rs.some(r => !isReadingForCharacter(characters[i] ?? "", r))) ctx.addIssue({ code: "custom", path: ["readings", i], message: `第 ${i + 1} 個讀音不屬於對應的中文字` });
   });
 });
 export const PronunciationDraftSchema = z.object({

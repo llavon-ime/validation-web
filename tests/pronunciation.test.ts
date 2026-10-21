@@ -7,10 +7,12 @@ import { isReadingForCharacter } from "../shared/utils/zhuyin";
 const sample = { schemaVersion: 1 as const, license: "CC-BY-4.0" as const, kind: "pronunciation" as const,
   answer: "部署", readings: [[{ syllable: "ㄅㄨ", tone: 4 }], [{ syllable: "ㄕㄨ", tone: 3 }, { syllable: "ㄕㄨ", tone: 4 }]], description: "" };
 describe("manual pronunciation annotations", () => {
-  it("accepts a blank explanation and readings outside the candidate table", () => {
-    const value = { ...sample, answer: "鉈", readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] };
-    expect(isReadingForCharacter("鉈", value.readings[0]![0]!)).toBe(false);
+  it("accepts a blank explanation and rejects readings outside the candidate table", () => {
+    const value = { ...sample, answer: "鉈", readings: [[{ syllable: "ㄊㄨㄛ", tone: 2 }, { syllable: "ㄕㄜ", tone: 2 }]] };
     expect(PronunciationSampleSchema.parse(value).description).toBe("");
+    const unlisted = { ...value, readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] };
+    expect(isReadingForCharacter("鉈", unlisted.readings[0]![0]!)).toBe(false);
+    expect(PronunciationSampleSchema.safeParse(unlisted).success).toBe(false);
   });
   it("rejects duplicate readings, incorrect alignment, and unmarked single-reading samples", () => {
     expect(PronunciationSampleSchema.safeParse({ ...sample, readings: [sample.readings[0]] }).success).toBe(false);
@@ -18,7 +20,9 @@ describe("manual pronunciation annotations", () => {
     expect(PronunciationSampleSchema.safeParse({ ...sample, readings: [sample.readings[0], [sample.readings[1]![0]]] }).success).toBe(false);
   });
   it("counts astral Han as a single character and rejects invalid Unicode", () => {
-    expect(PronunciationSampleSchema.safeParse({ ...sample, answer: "𠮷署" }).success).toBe(true);
+    const messages = PronunciationSampleSchema.safeParse({ ...sample, answer: "𠮷署" }).error?.issues.map(i => i.message);
+    expect(messages).not.toContain("讀音需與文字逐字對齊");
+    expect(messages).toContain("第 1 個讀音不屬於對應的中文字");
     expect(PronunciationSampleSchema.safeParse({ ...sample, description: "\ud800" }).success).toBe(false);
     expect(PronunciationSampleSchema.safeParse({ ...sample, description: "e\u0301" }).success).toBe(false);
   });

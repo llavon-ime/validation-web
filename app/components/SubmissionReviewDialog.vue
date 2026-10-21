@@ -35,10 +35,7 @@ const difficultyLabels: Record<Difficulty, string> = {
       aria-labelledby="review-title"
     >
       <header class="review-header">
-        <div>
-          <span>送出前確認</span>
-          <h2 id="review-title">這筆提交組字後會是這樣</h2>
-        </div>
+        <h2 id="review-title">確認這筆提交</h2>
         <button type="button" aria-label="關閉預覽" @click="emit('close')">×</button>
       </header>
 
@@ -49,10 +46,6 @@ const difficultyLabels: Record<Difficulty, string> = {
             <dt>整體判讀難度</dt>
             <dd>{{ difficulty ? difficultyLabels[difficulty] : "尚未選擇" }}</dd>
           </div>
-          <div>
-            <dt>下一步</dt>
-            <dd>{{ authenticated ? "確認後寫入 GitHub" : "確認後使用 GitHub 登入" }}</dd>
-          </div>
         </dl>
       </div>
 
@@ -61,10 +54,9 @@ const difficultyLabels: Record<Difficulty, string> = {
           返回修改
         </button>
         <button type="button" class="review-confirm" :disabled="loading" @click="emit('confirm')">
-          {{ loading ? "正在寫入 GitHub…" : authenticated ? "確認並提交" : "內容正確，前往 GitHub 登入" }}
+          {{ loading ? "正在提交…" : authenticated ? "確認並提交" : "確認並使用 GitHub 登入" }}
           <span aria-hidden="true">→</span>
         </button>
-        <p v-if="!authenticated">預覽不需要登入；只有確認提交時才會要求 GitHub 身分。</p>
       </footer>
     </section>
   </div>

@@ -1,5 +1,6 @@
 import type { SessionUser } from "../../../shared/utils/schema";
 import { getCookie, setCookie, deleteCookie, getQuery } from "h3";
+import { LOCAL_TEST_USER, isLoginRequired } from "../../utils/login";
 
 function returnPath(event: Parameters<typeof getCookie>[0]) {
   const path = getCookie(event, "llavon-login-return") === "/pronunciations" ? "/pronunciations" : "/";
@@ -30,8 +31,12 @@ const handler = defineOAuthGitHubEventHandler({
   },
 });
 
-export default defineEventHandler(event => {
+export default defineEventHandler(async event => {
   const query = getQuery(event);
+  if (!isLoginRequired(event)) {
+    await setUserSession(event, { user: LOCAL_TEST_USER });
+    return sendRedirect(event, query.returnTo === "/pronunciations" ? "/pronunciations" : "/");
+  }
   if (!query.code && !query.error) {
     setCookie(event, "llavon-login-return", query.returnTo === "/pronunciations" ? "/pronunciations" : "/", {
       httpOnly: true, sameSite: "lax", path: "/", maxAge: 600, secure: !import.meta.dev,

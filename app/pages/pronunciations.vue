@@ -6,7 +6,7 @@ import { PronunciationDraftSchema, PronunciationSampleSchema } from "#shared/uti
 import { getReadingsForCharacter } from "#shared/utils/zhuyin";
 import { acceptContributionAgreement, getContributionAgreement, submitPronunciationSample } from "../utils/api";
 import ContributionAgreement from "../components/ContributionAgreement.vue";
-import MultipleReadingAligner from "../components/MultipleReadingAligner.vue";
+import ZhuyinAligner from "../components/ZhuyinAligner.vue";
 useHead({ title: "人工多讀音標註・拉風輸入法" });
 const DRAFT_KEY = "llavon-pronunciation-draft-v1";
 const answer = ref("");
@@ -29,6 +29,8 @@ const agreementError = ref("");
 const { user, ready: sessionReady, clear: signOut } = useUserSession();
 const route = useRoute();
 const characters = computed(() => Array.from(answer.value.normalize("NFC")));
+const cells = computed(() => characters.value.map((character, index) => ({ character,
+  options: getReadingsForCharacter(character), selected: readings.value[index] ?? [] })));
 const sample = computed(() => ({ schemaVersion: 1 as const, license: DATASET_LICENSE, kind: "pronunciation" as const,
   answer: answer.value.normalize("NFC"),
   readings: readings.value, description: description.value.normalize("NFC") }));
@@ -83,11 +85,6 @@ async function acceptAgreement() {
   catch (error) { agreementError.value = error instanceof Error ? error.message : "無法記錄同意"; }
   finally { agreementLoading.value = false; }
 }
-function example() {
-  answer.value = "部署";
-  description.value = "「署」可接受三聲與口語常用的四聲。";
-  readings.value = [[{ syllable: "ㄅㄨ", tone: 4 }], [{ syllable: "ㄕㄨ", tone: 3 }, { syllable: "ㄕㄨ", tone: 4 }]];
-}
 onMounted(async () => {
   submissionId.value = crypto.randomUUID();
   try {
@@ -111,20 +108,20 @@ onMounted(async () => {
 <template>
   <div class="site-shell">
     <header class="topbar">
-      <NuxtLink class="brand" to="/"><img class="brand-logo" src="/llavon-logo.png" alt="拉風輸入法 Logo" /><span><strong>拉風輸入法</strong></span></NuxtLink>
+      <NuxtLink class="brand" to="/"><img class="brand-logo" src="/llavon-logo.png" alt="拉風輸入法 Logo" /><span><strong>拉風輸入法</strong><small>驗證集共筆</small></span></NuxtLink>
       <div class="account-area">
-        <NuxtLink class="dataset-link" to="/">驗證集投稿</NuxtLink><NuxtLink class="dataset-link" to="/dataset">瀏覽驗證集</NuxtLink>
+        <NuxtLink class="dataset-link" to="/">驗證集投稿</NuxtLink><NuxtLink class="dataset-link active" to="/pronunciations">多讀音標註</NuxtLink><NuxtLink class="dataset-link" to="/dataset">瀏覽資料集</NuxtLink>
         <span v-if="!sessionReady" class="session-placeholder">確認登入狀態…</span>
         <template v-else-if="user"><a :href="user.profileUrl" class="user-chip" target="_blank" rel="noreferrer"><img :src="user.avatarUrl" alt="" /><span>@{{ user.githubLogin }}</span></a><button type="button" class="text-button" @click="signOut">登出</button></template>
         <a v-else class="github-button compact" href="/auth/github?returnTo=/pronunciations">使用 GitHub 登入</a>
       </div>
     </header>
     <main class="page-content">
-      <section class="page-heading"><h1>人工多讀音標註</h1><button type="button" class="text-button" @click="example">填入「部署」範例 ↗</button></section>
+      <section class="page-heading"><h1>人工多讀音標註</h1></section>
       <section class="form-card" aria-label="多讀音標註表單">
         <form @submit.prevent="preview">
-          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label></div><input id="p-answer" v-model="answer" placeholder="例如：部署" required autocomplete="off" /></div>
-          <div class="field-group"><div class="field-label-row"><span class="field-label"><span class="field-index">2</span>可接受的讀音</span></div><MultipleReadingAligner :characters="characters" :readings="readings" @change="(index, values) => readings[index] = values" /></div>
+          <div class="field-group"><div class="field-label-row"><label for="p-answer"><span class="field-index">1</span>標註文字</label></div><input id="p-answer" v-model="answer" type="text" placeholder="例如：部署" required autocomplete="off" /></div>
+          <div class="field-group"><div class="field-label-row"><span class="field-label"><span class="field-index">2</span>可接受的讀音</span></div><ZhuyinAligner :cells="cells" multiple @change="(index, values) => readings[index] = values" /></div>
           <div class="field-group"><div class="field-label-row"><label for="p-description"><span class="field-index">3</span>說明（選填）</label></div><textarea id="p-description" v-model="description" rows="4" placeholder="例如：署的四聲是日常口語讀法" /></div>
           <label class="consent-row"><input v-model="consent" type="checkbox" /><span>我確認內容可公開、不含私人或敏感資料，且我有權提交這些文字。</span></label>
           <label class="consent-row"><input v-model="trainingConsent" type="checkbox" /><span>我確認已選讀音在這筆資料中都可接受，並同意將本筆人工標註及說明依 CC BY 4.0 公開，用於模型訓練。</span></label>
@@ -137,7 +134,7 @@ onMounted(async () => {
         </form>
       </section>
     </main>
-    <footer><a href="https://github.com/llavon-ime/validation-set/blob/main/dataset/pronunciations.jsonl" target="_blank" rel="noreferrer">查看多讀音資料 ↗</a></footer>
+    <footer><span>llavon-ime / validation-web</span></footer>
     <ContributionAgreement :open="agreementReady && !agreementAcceptedAt" :version="CONTRIBUTION_AGREEMENT_VERSION" :loading="agreementLoading" :error="agreementError" @accept="acceptAgreement" />
     <dialog ref="review" class="review-dialog pronunciation-review" aria-labelledby="p-review-title" @cancel="submitting && $event.preventDefault()">
       <header class="review-header"><h2 id="p-review-title">確認這筆多讀音標註</h2><button type="button" :disabled="submitting" aria-label="關閉預覽" @click="review?.close()">×</button></header>

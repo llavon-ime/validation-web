@@ -49,7 +49,7 @@ const agreementLoading = ref(false);
 const agreementError = ref("");
 
 const answerCharacters = computed(() => Array.from(answer.value.normalize("NFC")));
-const unresolved = computed(() => cells.value.some((cell) => !cell.selected));
+const unresolved = computed(() => cells.value.some((cell) => !cell.selected.length));
 const showAgreement = computed(
   () => agreementStatusReady.value && agreementAcceptedAt.value === null,
 );
@@ -69,7 +69,7 @@ function rebuildCells(preferred: Array<PaddingUnit | null> = []) {
     const options = getReadingsForCharacter(character);
     const candidates = [
       preferred[index] ?? null,
-      previous[index]?.character === character ? previous[index]?.selected ?? null : null,
+      previous[index]?.character === character ? previous[index]?.selected[0] ?? null : null,
     ];
     const selected =
       candidates.find(
@@ -77,13 +77,13 @@ function rebuildCells(preferred: Array<PaddingUnit | null> = []) {
           candidate !== null && isReadingForCharacter(character, candidate),
       ) ??
       (options.length === 1 ? options[0]! : null);
-    return { character, options, selected };
+    return { character, options, selected: selected ? [selected] : [] };
   });
 }
 
-function chooseReading(index: number, reading: PaddingUnit) {
+function chooseReading(index: number, readings: PaddingUnit[]) {
   const cell = cells.value[index];
-  if (cell) cell.selected = { ...reading };
+  if (cell) cell.selected = readings.map((reading) => ({ ...reading }));
 }
 
 function saveDraft() {
@@ -91,7 +91,7 @@ function saveDraft() {
     submissionId: submissionId.value,
     context: context.value,
     answer: answer.value,
-    padding: cells.value.map((cell) => cell.selected),
+    padding: cells.value.map((cell) => cell.selected[0] ?? null),
     difficulty: difficulty.value,
     consent: consent.value,
     validationUseConsent: validationUseConsent.value,
@@ -132,7 +132,7 @@ function buildDraft(): SubmissionDraft | null {
     submissionId: submissionId.value,
     context: context.value,
     answer: answer.value,
-    padding: cells.value.map((cell) => cell.selected),
+    padding: cells.value.map((cell) => cell.selected[0] ?? null),
     difficulty: difficulty.value,
     publicContributionConsent: consent.value,
     validationUseConsent: validationUseConsent.value,
@@ -249,6 +249,7 @@ onMounted(async () => {
       </a>
 
       <div class="account-area">
+        <NuxtLink class="dataset-link active" to="/">驗證集投稿</NuxtLink>
         <NuxtLink class="dataset-link" to="/pronunciations">多讀音標註</NuxtLink>
         <a class="dataset-link" href="/dataset">瀏覽資料集</a>
         <span v-if="!sessionReady" class="session-placeholder">確認登入狀態…</span>
@@ -267,10 +268,7 @@ onMounted(async () => {
 
     <main class="page-content">
       <section class="page-heading">
-        <div>
-          <h1>建立驗證集樣本</h1>
-          <p>提交正確答案、逐字注音、整體判讀難度，以及可選的前文。</p>
-        </div>
+        <h1>建立驗證集樣本</h1>
         <span class="draft-state">草稿會自動保存</span>
       </section>
 
@@ -287,9 +285,8 @@ onMounted(async () => {
               v-model="context"
               :maxlength="LIMITS.context"
               rows="4"
-              placeholder="例如：下班後我想去超市買"
+              placeholder="只放答案之前的內容，例如：下班後我想去超市買"
             />
-            <p class="field-hint">可以留空；若有填寫，只放答案出現之前的內容。</p>
           </div>
 
           <div class="field-group">
@@ -307,26 +304,21 @@ onMounted(async () => {
               placeholder="例如：牛奶"
               required
             />
-            <p class="field-hint">填入你在這個語境下唯一預期輸出的文字。</p>
           </div>
 
           <div class="field-group alignment-group">
             <div class="field-label-row">
-              <div>
-                <span class="field-label"><span class="field-index">3</span>讀音對齊</span>
-                <small>由目前輸入法候選表匹配</small>
-              </div>
+              <span class="field-label"><span class="field-index">3</span>讀音對齊</span>
             </div>
-            <ZhuyinAligner :cells="cells" @select="chooseReading" />
+            <ZhuyinAligner :cells="cells" @change="chooseReading" />
           </div>
 
           <div class="field-group">
-            <div class="field-label-row stacked-mobile">
+            <div class="field-label-row">
               <div>
                 <span class="field-label"><span class="field-index">4</span>整體判讀難度</span>
-                <small>綜合判斷語境本身的歧義，以及詞彙是否罕見、屬於領域專有名詞或需要背景知識；不考慮目前模型表現。</small>
+                <small>語境歧義與詞彙罕見度，不考慮模型表現</small>
               </div>
-              <span>請選擇 1–5</span>
             </div>
             <DifficultyPicker v-model="difficulty" />
           </div>
@@ -348,8 +340,7 @@ onMounted(async () => {
           <label class="consent-row attribution-row">
             <input v-model="creditAsCoauthor" type="checkbox" />
             <span>
-              <strong>（可選）在 GitHub commit 中將 @{{ user?.githubLogin ?? "我的帳號" }} 列為共同作者</strong>
-              <small>勾選後，這筆 commit 會以 Co-authored-by 記錄你的 GitHub 帳號。</small>
+              <strong>（可選）在 GitHub commit 列為共同作者</strong>
             </span>
           </label>
 
@@ -358,11 +349,7 @@ onMounted(async () => {
           </div>
 
           <div v-if="result" class="message success-message" role="status">
-            <div>
-              <strong>投稿已排入驗證</strong>
-              <span v-if="result.attributed">GitHub Actions 完成後，commit 會包含你的 Co-authored-by 紀錄。</span>
-              <span v-else>GitHub Actions 完成後，資料會以不含個人身分的 commit 寫入驗證集。</span>
-            </div>
+            <strong>投稿已排入驗證</strong>
             <a
               href="https://github.com/llavon-ime/validation-set/actions"
               target="_blank"
@@ -380,16 +367,12 @@ onMounted(async () => {
             <span>預覽提交內容</span>
             <span aria-hidden="true">→</span>
           </button>
-          <p class="submit-note">
-            預覽不需要登入；確認內容後才會要求 GitHub 登入或正式提交。
-          </p>
         </form>
       </section>
     </main>
 
     <footer>
       <span>llavon-ime / validation-web</span>
-      <a href="/dataset">瀏覽已提交資料</a>
     </footer>
 
     <ContributionAgreement

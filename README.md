@@ -66,6 +66,7 @@ npm run sync:bopomofo
 | 名稱 | 用途 |
 | --- | --- |
 | `NUXT_SESSION_PASSWORD` | 至少 32 字元，用於 Nuxt 加密 session 與同意書 cookie |
+| `NUXT_REQUIRE_GITHUB_LOGIN` | 預設 `true`；設為 `false` 時登入改用本地測試帳號、不經 GitHub OAuth，介面與流程不變，但投稿只在 server 驗證並記錄 log，不會實際提交，供本地測試 |
 | `GITHUB_CLIENT_ID` | GitHub App Client ID，傳給 `nuxt-auth-utils` 的 OAuth handler |
 | `GITHUB_CLIENT_SECRET` | GitHub App Client secret，傳給 `nuxt-auth-utils` 的 OAuth handler |
 | `GITHUB_APP_ID` | GitHub App ID |
@@ -114,7 +115,7 @@ Nitro Node 入口為 `.output/server/index.mjs`。執行環境需提供相同環
 
 ## 人工多讀音標註
 
-同一網站的 `/pronunciations` 頁面提供逐字多選讀音、手動新增讀音與「說明（選填）」。候選表只提供建議，人工標註可新增表外但格式正確的注音；不改動原本驗證集 API 的候選驗證。至少一個字須有兩種不同讀音。
+同一網站的 `/pronunciations` 頁面提供逐字多選讀音與「說明（選填）」。讀音與驗證集相同，只能從候選表中選擇，前後端都會驗證。至少一個字須有兩種不同讀音。
 
 沿用 GitHub 登入、同意書、App 安裝與 CC BY 4.0，後端發送 `append-pronunciation-sample` repository dispatch 至同一個 `llavon-ime/validation-set`。Action 寫入獨立的 `dataset/pronunciations.jsonl`，不混入 `validation.jsonl`。不需要新的 repo、App 或 secrets。
 

@@ -2,6 +2,7 @@ import { createError, getHeader, readRawBody, setResponseStatus } from "h3";
 import { PronunciationDraftSchema } from "../../shared/utils/pronunciation";
 import { getAgreementAcceptance } from "../services/agreement";
 import { dispatchPronunciationSample } from "../services/github";
+import { dryRunResponse, isLoginRequired } from "../utils/login";
 import { assertSameOrigin } from "../utils/security";
 
 const MAX_REQUEST_BYTES = 32 * 1024;
@@ -47,6 +48,10 @@ export default defineEventHandler(async (event) => {
   const attribution = draft.creditAsCoauthor
     ? { githubId: user.githubId, githubLogin: user.githubLogin }
     : null;
+  if (!isLoginRequired(event)) {
+    setResponseStatus(event, 202);
+    return dryRunResponse(draft.submissionId, sample, attribution);
+  }
   try {
     const result = await dispatchPronunciationSample(
       draft.submissionId,

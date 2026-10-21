@@ -6,6 +6,8 @@ export default defineNuxtConfig({
     session: {
       maxAge: 60 * 60 * 24 * 30,
     },
+    // NUXT_REQUIRE_GITHUB_LOGIN=false：本地測試用，登入改為本地測試帳號，投稿不會實際提交
+    requireGithubLogin: true,
   },
   app: {
     head: {
