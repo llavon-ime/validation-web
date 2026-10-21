@@ -36,7 +36,7 @@ describe("public dataset reader", () => {
       license: "CC-BY-4.0",
       kind: "pronunciation",
       answer: "鉈",
-      readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]],
+      readings: [[{ syllable: "ㄊㄚ", tone: 3 }, { syllable: "ㄊㄨㄛ", tone: 2 }]],
       description: "",
     };
     expect(parsePronunciationJsonl(`${JSON.stringify(pronunciation)}

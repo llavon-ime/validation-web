@@ -58,7 +58,7 @@ describe("pronunciation submission boundary", () => {
   });
   it("rejects absent training consent, unlisted readings, forged attribution, and oversized requests", async () => {
     expect((await request({ ...draft, trainingUseConsent: false })).status).toBe(400);
-    expect((await request({ ...draft, sample: { ...sample, readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] } })).status).toBe(400);
+    expect((await request({ ...draft, sample: { ...sample, readings: [[{ syllable: "ㄊㄚ", tone: 3 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] } })).status).toBe(400);
     expect((await request({ ...draft, attribution: { githubId: 456, githubLogin: "forged" } })).status).toBe(400);
     expect((await request({ ...draft, sample: { ...sample, description: "a".repeat(33 * 1024) } })).status).toBe(413);
     expect(mocks.dispatch).not.toHaveBeenCalled();

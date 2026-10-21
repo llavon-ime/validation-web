@@ -31,6 +31,14 @@ export function parseViewHeadword(html: string): string | null {
   return title ? title[1]! : null;
 }
 
+/**
+ * 簡編本的條目頁沒有 session 時是空白頁，使用者直接開啟會看到空白；
+ * 改連搜尋頁，由網站設定 session 後自行轉址（單筆）或列出結果（多筆）
+ */
+function entryLink(dictionary: MoeDictionary, viewUrl: string, searchUrl: string): string {
+  return dictionary === "concised" ? searchUrl : viewUrl;
+}
+
 async function lookup(dictionary: MoeDictionary, word: string): Promise<string | null> {
   const base = MOE_DICTIONARIES[dictionary];
   const searchUrl = `${base}/search.jsp?md=1&word=${encodeURIComponent(word)}`;
@@ -44,15 +52,23 @@ async function lookup(dictionary: MoeDictionary, word: string): Promise<string |
   if (response.status >= 300 && response.status < 400 && location) {
     const viewUrl = new URL(location, `${base}/`).toString();
     if (!new URL(viewUrl).pathname.endsWith("/dictView.jsp")) return null;
-    const view = await fetch(viewUrl, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-    if (!view.ok) return null;
-    return parseViewHeadword(await view.text()) === word ? viewUrl : null;
+    // 簡編本條目頁需要搜尋時取得的 session cookie，否則回傳空白頁
+    const cookie = response.headers.get("set-cookie")?.split(";")[0];
+    const view = await fetch(viewUrl, {
+      headers: cookie ? { cookie } : {},
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    const html = view.ok ? await view.text() : "";
+    if (!html) throw new Error(`Empty entry page (HTTP ${view.status})`);
+    return parseViewHeadword(html) === word ? entryLink(dictionary, viewUrl, searchUrl) : null;
   }
 
   if (!response.ok) return null;
   const ids = parseSearchResults(await response.text(), word);
   if (ids.length === 0) return null;
-  return ids.length === 1 ? `${base}/dictView.jsp?ID=${ids[0]}` : searchUrl;
+  return ids.length === 1
+    ? entryLink(dictionary, `${base}/dictView.jsp?ID=${ids[0]}`, searchUrl)
+    : searchUrl;
 }
 
 /** complete 為 false 表示有辭典查詢失敗，結果不應被快取 */

@@ -10,7 +10,7 @@ describe("manual pronunciation annotations", () => {
   it("accepts a blank explanation and rejects readings outside the candidate table", () => {
     const value = { ...sample, answer: "鉈", readings: [[{ syllable: "ㄊㄨㄛ", tone: 2 }, { syllable: "ㄕㄜ", tone: 2 }]] };
     expect(PronunciationSampleSchema.parse(value).description).toBe("");
-    const unlisted = { ...value, readings: [[{ syllable: "ㄊㄚ", tone: 1 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] };
+    const unlisted = { ...value, readings: [[{ syllable: "ㄊㄚ", tone: 3 }, { syllable: "ㄊㄨㄛ", tone: 2 }]] };
     expect(isReadingForCharacter("鉈", unlisted.readings[0]![0]!)).toBe(false);
     expect(PronunciationSampleSchema.safeParse(unlisted).success).toBe(false);
   });
