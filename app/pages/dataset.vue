@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { PronunciationSample } from "#shared/utils/pronunciation";
 import {
   DIFFICULTY_LEVELS,
   displayBopomofo,
@@ -8,15 +9,24 @@ import {
 import { computed, onMounted, ref, watch } from "vue";
 import DatasetSampleCard from "../components/DatasetSampleCard.vue";
 import {
-  DATASET_URL,
+  PRONUNCIATION_DATASET,
+  VALIDATION_DATASET,
   fetchDataset,
   readCachedDataset,
 } from "../utils/dataset";
 
-useHead({ title: "瀏覽驗證資料集・拉風輸入法" });
+useHead({ title: "瀏覽資料集・拉風輸入法" });
+
+type Sample = StoredValidationSample | PronunciationSample;
+
+const route = useRoute();
+const isPronunciation = computed(() => route.query.type === "pronunciations");
+const source = computed(() =>
+  isPronunciation.value ? PRONUNCIATION_DATASET : VALIDATION_DATASET,
+);
 
 const PAGE_SIZE = 12;
-const samples = ref<StoredValidationSample[]>([]);
+const samples = ref<Sample[]>([]);
 const loading = ref(true);
 const refreshing = ref(false);
 const showingCache = ref(false);
@@ -33,12 +43,18 @@ const entries = computed(() => {
   return samples.value
     .map((sample, index) => ({ sample, number: index + 1 }))
     .filter(({ sample }) => {
-      if (difficulty.value !== null && sample.difficulty !== difficulty.value) {
+      if (
+        difficulty.value !== null &&
+        (!("difficulty" in sample) || sample.difficulty !== difficulty.value)
+      ) {
         return false;
       }
       if (!needle) return true;
-      const readings = sample.padding.map(displayBopomofo).join("");
-      return `${sample.context}${sample.answer}${readings}`
+      const text =
+        "readings" in sample
+          ? `${sample.answer}${sample.readings.flat().map(displayBopomofo).join("")}${sample.description}`
+          : `${sample.context}${sample.answer}${sample.padding.map(displayBopomofo).join("")}`;
+      return text
         .normalize("NFC")
         .toLocaleLowerCase("zh-Hant")
         .includes(needle);
@@ -55,7 +71,7 @@ const difficultyCounts = computed(() =>
   Object.fromEntries(
     DIFFICULTY_LEVELS.map((level) => [
       level,
-      samples.value.filter((sample) => sample.difficulty === level).length,
+      samples.value.filter((sample) => "difficulty" in sample && sample.difficulty === level).length,
     ]),
   ) as Record<Difficulty, number>,
 );
@@ -78,9 +94,14 @@ async function signOut() {
 }
 
 async function loadDataset() {
+  const current = source.value;
+  samples.value = [];
+  loading.value = true;
+  errorMessage.value = "";
   let hasCachedData = false;
   try {
-    const cached = await readCachedDataset();
+    const cached = await readCachedDataset<Sample>(current);
+    if (current !== source.value) return;
     if (cached) {
       samples.value = cached.samples;
       loadedAt.value = cached.loadedAt;
@@ -94,12 +115,14 @@ async function loadDataset() {
 
   refreshing.value = hasCachedData;
   try {
-    const fresh = await fetchDataset();
+    const fresh = await fetchDataset<Sample>(current);
+    if (current !== source.value) return;
     samples.value = fresh.samples;
     loadedAt.value = fresh.loadedAt;
     showingCache.value = false;
     errorMessage.value = "";
   } catch (error) {
+    if (current !== source.value) return;
     errorMessage.value = hasCachedData
       ? "目前無法向 GitHub 更新，暫時顯示上次成功載入的資料。"
       : error instanceof Error
@@ -113,6 +136,12 @@ async function loadDataset() {
 
 watch([query, difficulty], () => {
   currentPage.value = 1;
+});
+watch(source, () => {
+  query.value = "";
+  difficulty.value = null;
+  currentPage.value = 1;
+  void loadDataset();
 });
 watch(totalPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages;
@@ -133,6 +162,8 @@ onMounted(loadDataset);
       </a>
 
       <div class="account-area">
+        <NuxtLink class="dataset-link" to="/">驗證集投稿</NuxtLink>
+        <NuxtLink class="dataset-link" to="/pronunciations">多讀音標註</NuxtLink>
         <a class="dataset-link active" href="/dataset">瀏覽資料集</a>
         <span v-if="!sessionReady" class="session-placeholder">確認登入狀態…</span>
         <template v-else-if="user">
@@ -148,11 +179,7 @@ onMounted(loadDataset);
 
     <main class="page-content dataset-page">
       <section class="page-heading dataset-heading">
-        <div>
-          <span class="dataset-eyebrow">PUBLIC VALIDATION SET</span>
-          <h1>瀏覽已提交資料集</h1>
-          <p>直接從公開 GitHub repository 讀取，依提交順序顯示最新收錄內容。</p>
-        </div>
+        <h1>瀏覽資料集</h1>
         <span class="draft-state dataset-sync-state">
           {{ refreshing ? "正在同步 GitHub…" : showingCache ? "顯示離線快取" : `同步於 ${updatedLabel}` }}
         </span>
@@ -160,31 +187,31 @@ onMounted(loadDataset);
 
       <section class="dataset-toolbar" aria-label="資料集搜尋與篩選">
         <div class="dataset-summary">
-          <div>
-            <strong>{{ samples.length.toLocaleString() }}</strong>
-            <span>筆公開樣本</span>
-          </div>
-          <div>
+          <nav class="dataset-filters dataset-kinds" aria-label="資料集種類">
+            <NuxtLink to="/dataset" replace :class="{ selected: !isPronunciation }">驗證集</NuxtLink>
+            <NuxtLink to="/dataset?type=pronunciations" replace :class="{ selected: isPronunciation }">多讀音標註</NuxtLink>
+          </nav>
+          <div v-if="query">
             <strong>{{ entries.length.toLocaleString() }}</strong>
-            <span>筆符合條件</span>
+            <span>筆符合</span>
           </div>
-          <a :href="DATASET_URL" target="_blank" rel="noreferrer">查看原始 JSONL ↗</a>
+          <a :href="source.url" target="_blank" rel="noreferrer">查看原始 JSONL ↗</a>
         </div>
 
         <div class="dataset-search-row">
-          <label for="dataset-search" class="sr-only">搜尋前文、答案或注音</label>
+          <label for="dataset-search" class="sr-only">搜尋文字或注音</label>
           <input
             id="dataset-search"
             v-model="query"
             class="dataset-search"
             type="search"
-            placeholder="搜尋前文、答案或注音…"
+            :placeholder="isPronunciation ? '搜尋文字、注音或說明…' : '搜尋前文、答案或注音…'"
             autocomplete="off"
           />
           <button v-if="query" type="button" class="clear-search" @click="query = ''">清除</button>
         </div>
 
-        <div class="dataset-filters" aria-label="依難度篩選">
+        <div v-if="!isPronunciation" class="dataset-filters" aria-label="依難度篩選">
           <button
             type="button"
             :class="{ selected: difficulty === null }"
@@ -215,7 +242,7 @@ onMounted(loadDataset);
         <span>正在從 GitHub 載入公開資料集…</span>
       </section>
 
-      <section v-else-if="visibleEntries.length" class="dataset-results" aria-label="驗證資料集樣本">
+      <section v-else-if="visibleEntries.length" class="dataset-results" aria-label="資料集樣本">
         <DatasetSampleCard
           v-for="entry in visibleEntries"
           :key="entry.number"
@@ -226,10 +253,7 @@ onMounted(loadDataset);
 
       <section v-else class="dataset-empty-state">
         <span aria-hidden="true">無</span>
-        <div>
-          <strong>{{ samples.length ? "找不到符合條件的樣本" : "目前還沒有公開樣本" }}</strong>
-          <p>{{ samples.length ? "試著清除搜尋文字或選擇其他難度。" : "第一筆資料收錄後會顯示在這裡。" }}</p>
-        </div>
+        <strong>{{ samples.length ? "找不到符合條件的樣本" : "目前還沒有公開樣本" }}</strong>
       </section>
 
       <nav v-if="!loading && totalPages > 1" class="dataset-pagination" aria-label="資料集分頁">
@@ -241,7 +265,6 @@ onMounted(loadDataset);
 
     <footer>
       <span>llavon-ime / validation-set</span>
-      <a href="/">貢獻一筆資料</a>
     </footer>
   </div>
 </template>

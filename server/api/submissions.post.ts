@@ -9,6 +9,7 @@ import {
 import { isReadingForCharacter } from "../../shared/utils/zhuyin";
 import { getAgreementAcceptance } from "../services/agreement";
 import { dispatchValidationSample } from "../services/github";
+import { dryRunResponse, isLoginRequired } from "../utils/login";
 import { assertSameOrigin } from "../utils/security";
 
 const MAX_REQUEST_BYTES = 16 * 1024;
@@ -73,6 +74,10 @@ export default defineEventHandler(async (event) => {
   const attribution = draft.creditAsCoauthor
     ? { githubId: user.githubId, githubLogin: user.githubLogin }
     : null;
+  if (!isLoginRequired(event)) {
+    setResponseStatus(event, 202);
+    return dryRunResponse(draft.submissionId, sample, attribution);
+  }
   try {
     const result = await dispatchValidationSample(
       draft.submissionId,

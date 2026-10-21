@@ -19,6 +19,13 @@ async function readJson<T>(response: Response): Promise<T> {
   return body as T;
 }
 
+export async function submitPronunciationSample(draft: import("#shared/utils/pronunciation").PronunciationDraft): Promise<SubmissionResponse> {
+  return readJson<SubmissionResponse>(await fetch("/api/pronunciations", {
+    method: "POST", credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify(draft),
+  }));
+}
+
 export async function acceptContributionAgreement(
   version: string,
 ): Promise<AgreementResponse> {

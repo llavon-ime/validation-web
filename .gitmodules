@@ -1,0 +1,5 @@
+[submodule "vendor/ime-core"]
+	path = vendor/ime-core
+	url = https://github.com/llavon-ime/ime-core.git
+	shallow = true
+	branch = main

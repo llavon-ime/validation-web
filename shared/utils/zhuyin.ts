@@ -1,8 +1,6 @@
 import { isEnglishLetter, type PaddingUnit } from "./schema";
-import candidateTable from "../data/bopomofo-char.json";
-
-export const BOPOMOFO_MAPPING_VERSION =
-  "ime-windows-frontend:64cb9689f26e7e2a3e19378c0f42b71dd0d67f7c";
+// 字表唯一來源：ime-core submodule，更新請 bump submodule
+import candidateTable from "../../vendor/ime-core/table/bopomofo_char.json";
 
 const toneByMark: Record<string, PaddingUnit["tone"]> = {
   " ": 1,

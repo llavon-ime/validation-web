@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { PronunciationSample } from "#shared/utils/pronunciation";
 import {
   displayBopomofo,
   type Difficulty,
@@ -7,16 +8,20 @@ import {
 import { computed } from "vue";
 
 const props = defineProps<{
-  sample: StoredValidationSample;
+  sample: StoredValidationSample | PronunciationSample;
   number: number;
 }>();
 
-const answerCells = computed(() =>
-  Array.from(props.sample.answer.normalize("NFC")).map((character, index) => ({
+const answerCells = computed(() => {
+  const sample = props.sample;
+  return Array.from(sample.answer.normalize("NFC")).map((character, index) => ({
     character,
-    reading: props.sample.padding[index]!,
-  })),
-);
+    reading:
+      "readings" in sample
+        ? sample.readings[index]!.map(displayBopomofo).join("／")
+        : displayBopomofo(sample.padding[index]!),
+  }));
+});
 
 const difficultyLabels: Record<Difficulty, string> = {
   1: "容易",
@@ -31,28 +36,22 @@ const difficultyLabels: Record<Difficulty, string> = {
   <article class="dataset-sample-card">
     <header class="dataset-card-header">
       <span>樣本 #{{ number.toLocaleString() }}</span>
-      <span class="dataset-difficulty">
+      <span v-if="'difficulty' in sample" class="dataset-difficulty">
         難度 {{ sample.difficulty }}・{{ difficultyLabels[sample.difficulty] }}
       </span>
     </header>
 
     <div class="dataset-card-body">
       <p class="composed-sentence dataset-sentence">
-        <span class="preview-context">{{ sample.context }}</span>
+        <span v-if="'context' in sample" class="preview-context">{{ sample.context }}</span>
         <span class="preview-answer">
           <ruby v-for="(cell, index) in answerCells" :key="`${index}-${cell.character}`">
             <span>{{ cell.character }}</span>
-            <rt>{{ displayBopomofo(cell.reading) }}</rt>
+            <rt>{{ cell.reading }}</rt>
           </ruby>
         </span>
       </p>
-
-      <div class="preview-reading-row">
-        <span>逐字注音</span>
-        <strong>
-          {{ sample.padding.map((reading) => displayBopomofo(reading)).join("　") }}
-        </strong>
-      </div>
+      <p v-if="'description' in sample && sample.description" class="description-preview">{{ sample.description }}</p>
     </div>
   </article>
 </template>

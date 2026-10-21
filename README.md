@@ -9,10 +9,11 @@
 ```text
 app/       Vue 頁面、元件與樣式
 server/    Nitro API、OAuth 路由與 GitHub App 服務
-shared/    前後端共用 schema、注音候選表與驗證邏輯
+shared/    前後端共用 schema 與驗證邏輯
+vendor/    ime-core submodule，提供注音候選表
 public/    靜態資源
 tests/     schema、注音與 API 測試
-scripts/   品牌資源及注音候選表同步工具
+scripts/   品牌資源同步工具
 docs/      資料格式與授權文件
 ```
 
@@ -42,10 +43,15 @@ npm test
 npm run build
 npm run preview
 npm run sync:brand
-npm run sync:bopomofo
 ```
 
-`sync:bopomofo` 從 `llavon-ime/ime-windows-frontend` 同步注音候選表，並在寫入前驗證 Git blob SHA。`sync:brand` 從 `llavon-ime` GitHub 組織頭像同步網站 Logo，並以 SHA-256 鎖定已審核版本。
+注音候選表直接讀取 `vendor/ime-core` submodule 的 `table/bopomofo_char.json`，與輸入法共用同一份字表，不另存副本。clone 時請加上 `--recurse-submodules`，或在既有 clone 執行 `git submodule update --init`；要更新字表時更新 submodule 指向的 commit：
+
+```powershell
+git submodule update --remote vendor/ime-core
+```
+
+`sync:brand` 從 `llavon-ime` GitHub 組織頭像同步網站 Logo，並以 SHA-256 鎖定已審核版本。
 
 ## GitHub App
 
@@ -66,6 +72,7 @@ npm run sync:bopomofo
 | 名稱 | 用途 |
 | --- | --- |
 | `NUXT_SESSION_PASSWORD` | 至少 32 字元，用於 Nuxt 加密 session 與同意書 cookie |
+| `NUXT_REQUIRE_GITHUB_LOGIN` | 預設 `true`；設為 `false` 時登入改用本地測試帳號、不經 GitHub OAuth，介面與流程不變，但投稿只在 server 驗證並記錄 log，不會實際提交，供本地測試 |
 | `GITHUB_CLIENT_ID` | GitHub App Client ID，傳給 `nuxt-auth-utils` 的 OAuth handler |
 | `GITHUB_CLIENT_SECRET` | GitHub App Client secret，傳給 `nuxt-auth-utils` 的 OAuth handler |
 | `GITHUB_APP_ID` | GitHub App ID |
@@ -111,3 +118,13 @@ Nitro Node 入口為 `.output/server/index.mjs`。執行環境需提供相同環
 ## 授權
 
 網站程式碼依 [BSD 2-Clause License](LICENSE) 授權；validation dataset 之各筆投稿由投稿者保留權利並依 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 提供，統一姓名標示為「拉風輸入法組織（llavon-ime）」及資料集網址。
+
+## 人工多讀音標註
+
+同一網站的 `/pronunciations` 頁面提供逐字多選讀音與「說明（選填）」。讀音與驗證集相同，只能從候選表中選擇，前後端都會驗證。至少一個字須有兩種不同讀音。
+
+沿用 GitHub 登入、同意書、App 安裝與 CC BY 4.0，後端發送 `append-pronunciation-sample` repository dispatch 至同一個 `llavon-ime/validation-set`。Action 寫入獨立的 `dataset/pronunciations.jsonl`，不混入 `validation.jsonl`。不需要新的 repo、App 或 secrets。
+
+**部署順序：先合併 validation-set 的新 Action，再部署本網站。** GitHub 接受 dispatch 不代表 workflow 已存在或完成；API 202 僅表示已排入。新功能使用同意書 2.1，明確區分一般驗證集和可供訓練的人工多讀音資料。
+
+格式與兩 repo 共用契約見 [docs/pronunciation-schema.md](docs/pronunciation-schema.md)。
